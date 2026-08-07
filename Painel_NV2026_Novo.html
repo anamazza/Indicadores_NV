@@ -251,6 +251,8 @@ table.tab-verde thead .btn-ano:hover{background:#FFF}
 
 /* ---------------- página do dossiê (sobreposta) ---------------- */
 .pagina-dossie{position:fixed; inset:0; z-index:3000; overflow:auto; background:var(--mint); overscroll-behavior:contain}
+/* página do dossiê mais larga, para as tabelas de 8 colunas caberem sem corte */
+.pagina-dossie .wrap{width:min(1560px, 100% - 2.6rem)}
 .pd-topo{position:sticky; top:0; z-index:20; background:rgba(255,255,255,.95); border-bottom:1px solid var(--borda); padding:.65rem 0; backdrop-filter:blur(8px)}
 .pd-topo-linha{display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap}
 /* acordeão abre/fecha (como no painel de partos) */
