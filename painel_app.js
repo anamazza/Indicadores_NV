@@ -1473,15 +1473,13 @@ function inicia(){
   const busca = document.getElementById("buscaUnidade");
   const chkCtx = document.getElementById("chkContexto");
   const btnLimpar = document.getElementById("btnLimparUnidades");
-  const mostraLimpar = () => { btnLimpar.hidden = !(sReg.value || sUF.value || busca.value || chkCtx.checked); };
-  [sReg, sUF].forEach(s => s.addEventListener("change", () => { desenhaPontos(); mostraLimpar(); }));
-  busca.addEventListener("input", () => { clearTimeout(window._tBusca); window._tBusca = setTimeout(desenhaPontos, 250); mostraLimpar(); });
-  chkCtx.addEventListener("change", () => { desenhaPontos(); mostraLimpar(); });
+  [sReg, sUF].forEach(s => s.addEventListener("change", desenhaPontos));
+  busca.addEventListener("input", () => { clearTimeout(window._tBusca); window._tBusca = setTimeout(desenhaPontos, 250); });
+  chkCtx.addEventListener("change", desenhaPontos);
   btnLimpar.addEventListener("click", () => {
     sReg.value = ""; sUF.value = ""; busca.value = ""; chkCtx.checked = false;
     desenhaPontos();
     if(leaf) leaf.setView([-14.5, -52], 4);
-    mostraLimpar();
   });
 
   // dossiê — seletor no painel + página sobreposta

@@ -457,7 +457,7 @@ footer a{color:var(--verde-lima)}
           <select id="selUFLeaflet"><option value="">Todos os estados</option></select>
           <input type="search" id="buscaUnidade" placeholder="Buscar maternidade…" style="flex:1; min-width:190px"/>
           <label class="toggle"><input type="checkbox" id="chkContexto"/> mostrar demais estabelecimentos (≥480 partos)</label>
-          <button class="chip" id="btnLimparUnidades" hidden>✕ limpar</button>
+          <button class="chip" id="btnLimparUnidades">✕ limpar</button>
         </div>
         <div id="mapaLeaflet"></div>
       </div>
@@ -16870,15 +16870,13 @@ function inicia(){
   const busca = document.getElementById("buscaUnidade");
   const chkCtx = document.getElementById("chkContexto");
   const btnLimpar = document.getElementById("btnLimparUnidades");
-  const mostraLimpar = () => { btnLimpar.hidden = !(sReg.value || sUF.value || busca.value || chkCtx.checked); };
-  [sReg, sUF].forEach(s => s.addEventListener("change", () => { desenhaPontos(); mostraLimpar(); }));
-  busca.addEventListener("input", () => { clearTimeout(window._tBusca); window._tBusca = setTimeout(desenhaPontos, 250); mostraLimpar(); });
-  chkCtx.addEventListener("change", () => { desenhaPontos(); mostraLimpar(); });
+  [sReg, sUF].forEach(s => s.addEventListener("change", desenhaPontos));
+  busca.addEventListener("input", () => { clearTimeout(window._tBusca); window._tBusca = setTimeout(desenhaPontos, 250); });
+  chkCtx.addEventListener("change", desenhaPontos);
   btnLimpar.addEventListener("click", () => {
     sReg.value = ""; sUF.value = ""; busca.value = ""; chkCtx.checked = false;
     desenhaPontos();
     if(leaf) leaf.setView([-14.5, -52], 4);
-    mostraLimpar();
   });
 
   // dossiê — seletor no painel + página sobreposta
