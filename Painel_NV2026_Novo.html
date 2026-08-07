@@ -15988,6 +15988,7 @@ function desenhaPontos(){
       mk.bindPopup(`<div class="pop-nome">${esc(p.nome)}</div>
         <div>${esc(p.mun)} · ${p.uf} · CNES ${p.cnes}</div>
         <div>${fmtInt(p.partos)} partos em 2025 (SIH/AIH)</div>`);
+      mk.on("click", () => leaf.flyTo(mk.getLatLng(), Math.max(leaf.getZoom(), 10), {duration:.7}));
       camadaCtx.addLayer(mk);
     });
     leaf.addLayer(camadaCtx);
@@ -16008,6 +16009,7 @@ function desenhaPontos(){
       <div><u>Via de nascimento</u>: Cesárea <b>${fmtPct(ces)}</b> · Vaginal: <b>${ces == null ? "—" : fmtPct(100 - ces)}</b></div>
       <div>Parto vaginal por enfermeira/obstetriz: <b>${fmtPct(enf)}</b> <span style="color:#4E6A5C">(meta ≥50%)</span></div>
       <a class="pop-btn" href="#" onclick="abrirDossie('${m.cnes}');return false;">Abrir dossiê →</a>`);
+    mk.on("click", () => leaf.flyTo(mk.getLatLng(), Math.max(leaf.getZoom(), 11), {duration:.7}));
     camadaEstr.addLayer(mk);
   });
   leaf.addLayer(camadaEstr);
