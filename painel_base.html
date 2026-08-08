@@ -157,7 +157,7 @@ section:nth-of-type(even) table.dados tbody tr:nth-child(odd){background:var(--b
 .mapa-svg-box .t:hover{opacity:.8; stroke:var(--verde-esmeralda); stroke-width:1.4}
 
 /* divisórias do comparativo: traço escuro fino, legível sobre as cores claras */
-#mapaComp2019 .t, #mapaComp2024 .t{stroke:#4A5B52; stroke-width:.75}
+#mapaComp2019 .t, #mapaComp2024 .t{stroke:#4A5B52; stroke-width:.75; vector-effect:non-scaling-stroke}
 #mapaComp2019 .t:hover, #mapaComp2024 .t:hover{stroke:var(--indigo); stroke-width:1.6}
 
 /* tooltip do mapa (território + maternidades) */
@@ -199,7 +199,7 @@ section:nth-of-type(even) table.dados tbody tr:nth-child(odd){background:var(--b
 @media (max-width: 1080px){ .pan-grid{grid-template-columns:1fr} }
 .legenda-v{flex-direction:column; gap:.45rem; margin-top:0; align-items:flex-start}
 .nota-mapa{font-size:.8rem; line-height:1.55}
-.mapa-svg-box .sigla{pointer-events:none; font-weight:800; font-size:13px}
+.mapa-svg-box .sigla{pointer-events:none; font-weight:800}
 .seg{display:inline-flex; border:1.5px solid var(--borda); border-radius:10px; overflow:hidden; background:var(--branco)}
 .seg button{border:none; background:transparent; padding:.4rem .8rem; font-weight:700; font-size:.84rem; color:var(--texto-suave)}
 .seg button.ativo{background:var(--verde-fiocruz); color:#FFF}

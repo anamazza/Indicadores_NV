@@ -271,17 +271,22 @@ function desenhaMapa(){
     p.addEventListener("click", () => { escondeTipMapa(); cliqueTerritorio(t, p); });
     g.appendChild(p);
   });
-  // contorno das UFs por cima (nos níveis de detalhe, sem recorte ativo)
-  if(estado.nivel !== "uf" && GEO.bordaUF && !ufsVisiveis){
-    const b = document.createElementNS(NS, "path");
-    b.setAttribute("d", GEO.bordaUF);
-    b.setAttribute("fill", "none");
-    b.setAttribute("stroke", "var(--indigo)");
-    b.setAttribute("stroke-width", "1");
-    b.setAttribute("vector-effect", "non-scaling-stroke");
-    b.setAttribute("pointer-events", "none");
-    b.setAttribute("opacity", ".45");
-    g.appendChild(b);
+  // contorno das UFs por cima (nos níveis de detalhe, com ou sem recorte ativo)
+  if(estado.nivel !== "uf"){
+    const bordasUF = ufsVisiveis
+      ? GEO.niveis.uf.filter(t => ufsVisiveis.includes(t.id)).map(t => t.d)
+      : (GEO.bordaUF ? [GEO.bordaUF] : []);
+    bordasUF.forEach(d => {
+      const b = document.createElementNS(NS, "path");
+      b.setAttribute("d", d);
+      b.setAttribute("fill", "none");
+      b.setAttribute("stroke", "var(--indigo)");
+      b.setAttribute("stroke-width", ufsVisiveis ? "1.4" : "1");
+      b.setAttribute("vector-effect", "non-scaling-stroke");
+      b.setAttribute("pointer-events", "none");
+      b.setAttribute("opacity", ".45");
+      g.appendChild(b);
+    });
   }
   svgEl.appendChild(g);
   svgBox.appendChild(svgEl);
@@ -296,7 +301,7 @@ function desenhaMapa(){
       if(bb.width < 14 && bb.height < 14) return;      // muito pequeno para rótulo
       const txt = document.createElementNS(NS, "text");
       txt.setAttribute("x", (bb.x + bb.width/2).toFixed(1));
-      txt.setAttribute("y", (bb.y + bb.height/2 + 4).toFixed(1));
+      txt.dataset.cy = (bb.y + bb.height/2).toFixed(1);
       txt.setAttribute("text-anchor", "middle");
       txt.setAttribute("class", "sigla");
       txt.setAttribute("fill", escuras.has(paths[i].getAttribute("fill")) ? "#FFFFFF" : "#0A213D");
@@ -307,6 +312,15 @@ function desenhaMapa(){
 
   if(estado.uf) zoomUFs([estado.uf], false);
   else if(estado.regiao) zoomUFs(REGIAO_UFS[estado.regiao] || [], false);
+  // siglas com tamanho constante na tela: proporcional à largura do viewBox atual
+  if(estado.nivel === "uf"){
+    const vbw = Number(svgEl.getAttribute("viewBox").split(" ")[2]);
+    const fsSigla = 13 * vbw / GEO.W;
+    svgEl.querySelectorAll("text.sigla").forEach(tx => {
+      tx.setAttribute("font-size", fsSigla.toFixed(2));
+      tx.setAttribute("y", (Number(tx.dataset.cy) + fsSigla * 0.35).toFixed(1));
+    });
+  }
   desenhaLegenda(ind, lims, vals);
   desenhaPainelSelecao();
 }
@@ -509,6 +523,23 @@ function desenhaMapaCompEm(alvoId, ano){
     p.addEventListener("mouseleave", escondeTipMapa);
     g.appendChild(p);
   });
+  // contorno das UFs em evidência (níveis regiões de saúde e macro)
+  if(compSel.nivel !== "uf"){
+    const bordasUF = ufsVis
+      ? GEO.niveis.uf.filter(t => ufsVis.includes(t.id)).map(t => t.d)
+      : (GEO.bordaUF ? [GEO.bordaUF] : []);
+    bordasUF.forEach(d => {
+      const b = document.createElementNS(NS, "path");
+      b.setAttribute("d", d);
+      b.setAttribute("fill", "none");
+      b.setAttribute("stroke", "var(--indigo)");
+      b.setAttribute("stroke-width", ufsVis ? "1.4" : "1");
+      b.setAttribute("vector-effect", "non-scaling-stroke");
+      b.setAttribute("pointer-events", "none");
+      b.setAttribute("opacity", ".5");
+      g.appendChild(b);
+    });
+  }
   svg.appendChild(g);
   box.appendChild(svg);
   // recorte: enquadra apenas o que está visível
@@ -525,7 +556,7 @@ function desenhaMapaCompEm(alvoId, ano){
 
   // siglas das UFs (tamanho proporcional ao recorte, com halo branco)
   const vb = svg.getAttribute("viewBox").split(" ").map(Number);
-  const fs = Math.max(9, vb[2] / 62);
+  const fs = vb[2] / 62;   // proporcional ao recorte: tamanho constante na tela
   (ufsVis || Object.keys(UF_NOME)).forEach(uf => {
     const c = centroUF(svg, uf);
     if(!c) return;
@@ -1461,6 +1492,7 @@ function inicia(){
     // <1500g só existe por macro e UF
     const opRS = sNC.querySelector('option[value="rs"]');
     opRS.disabled = compSel.recorte === "m1500";
+    opRS.hidden = opRS.disabled;   // some da lista: recorte <1500g não existe por região de saúde
     if(opRS.disabled && compSel.nivel === "rs"){ compSel.nivel = "macro"; sNC.value = "macro"; }
     desenhaComparativo();
   });
