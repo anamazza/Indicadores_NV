@@ -16070,6 +16070,36 @@ function grafBarras(alvo, rotulos, valores, opts = {}){
   s += "</svg>";
   document.getElementById(alvo).innerHTML = s;
 }
+function grafBarrasDuplo(alvo, rotulos, series){
+  // series: [{nome, cor, vals}] — duas séries de barras lado a lado por rótulo
+  const W = 640, H = 225, mL = 10, mR = 10, mT = 40, mB = 28;
+  const todos = series.flatMap(sr => sr.vals).filter(v => v != null);
+  if(!todos.length){ document.getElementById(alvo).innerHTML = "<p class='suave'>Sem dados.</p>"; return; }
+  const max = Math.max(...todos, 1);
+  const n = rotulos.length, gw = (W - mL - mR) / n;
+  let s = `<svg class="graf" viewBox="0 0 ${W} ${H}">`;
+  let lx = mL;
+  series.forEach(sr => {
+    s += `<rect x="${lx}" y="6" width="12" height="12" rx="3" fill="${sr.cor}"/>`;
+    s += `<text x="${lx + 17}" y="16.5" font-size="12.5" font-weight="700" fill="#1D3229">${sr.nome}</text>`;
+    lx += 17 + sr.nome.length * 7.5 + 22;
+  });
+  rotulos.forEach((r, i) => {
+    series.forEach((sr, j) => {
+      const v = sr.vals[i];
+      if(v == null) return;
+      const h = (H - mT - mB) * v / max;
+      const bw = gw * 0.30;
+      const x = mL + i * gw + gw * 0.16 + j * (bw + gw * 0.07);
+      const y = H - mB - h;
+      s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${sr.cor}"/>`;
+      s += `<text x="${(x + bw/2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1D3229">${Math.round(v)}</text>`;
+    });
+    s += `<text x="${(mL + i*gw + gw/2).toFixed(1)}" y="${H - 9}" text-anchor="middle" font-size="12.5" fill="#4E6A5C">${r}</text>`;
+  });
+  s += "</svg>";
+  document.getElementById(alvo).innerHTML = s;
+}
 function grafLinhas(alvo, series, opts = {}){
   // series: [{nome, cor, vals:[…por ano…]}]
   const comRotulos = opts.rotulos !== false && series.length === 1;
@@ -16430,6 +16460,18 @@ function fecharDossie(voltarHistorico = true){
 }
 window.addEventListener("popstate", () => { fecharDossie(false); fecharMetodo(false); });
 
+/* NV do Brasil por ano: soma dos totais das 27 UFs (cada maternidade carrega o total da sua UF) */
+let _nvBrasil = null;
+function nvBrasilAno(a){
+  if(!_nvBrasil){
+    const porUF = {};
+    MAT.forEach(m => { porUF[m.uf] = m.blocos.nv_territorio[4][1]; });
+    const series = Object.values(porUF);
+    _nvBrasil = series[0].map((_, i) => series.reduce((s, v) => s + (v[i] || 0), 0));
+  }
+  return _nvBrasil[a] || null;
+}
+
 function desenhaDossie(){
   const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
   const el = document.getElementById("dossieConteudo");
@@ -16448,12 +16490,22 @@ function desenhaDossie(){
     <div style="text-align:right">
       <div class="num-grande mono" style="color:#FFF">${fmtInt(valorUnidade(mt, indPorId("nv"), NT-1))}</div>
       <div style="font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; color:#A5D6A7; font-weight:700">Nascidos vivos ${ANOS[NT-1]}</div>
+      ${(() => {
+        const nvU = mt.blocos.nv_territorio[0][1][NT-1];
+        const nvUF = mt.blocos.nv_territorio[4][1][NT-1];
+        const nvBR = nvBrasilAno(NT-1);
+        if(nvU == null || !nvUF || !nvBR) return "";
+        const pUF = fmtPct(100 * nvU / nvUF);
+        const pBR = (100 * nvU / nvBR).toLocaleString("pt-BR", {minimumFractionDigits:2, maximumFractionDigits:2}) + "%";
+        return `<div style="font-size:.8rem; color:#D7EBDD; margin-top:.35rem">representa <b>${pUF}</b> dos nascimentos de ${mt.uf} e <b>${pBR}</b> do Brasil</div>`;
+      })()}
     </div>
   </div>
   <div class="dossie-cards">
     <div class="card full">${cardCnesHTML(mt)}</div>
     ${cardHabilitacoesHTML(mt) ? `<div class="card full">${cardHabilitacoesHTML(mt)}</div>` : ""}
-    <div class="card full"><h3>Nascidos vivos ocorridos, ${ANOS[0]} a ${ANOS[NT-1]}</h3><div id="dNV" style="max-width:720px"></div><p class="fonte">${FONTE_SINASC}</p></div>
+    <div class="card"><h3>Nascidos vivos ocorridos, ${ANOS[0]} a ${ANOS[NT-1]}</h3><div id="dNV"></div><p class="fonte">${FONTE_SINASC}</p></div>
+    <div class="card"><h3>Evolução comparada com o Brasil (${ANOS[0]} = 100)</h3><div id="dNVBrasil"></div><p class="fonte">${FONTE_SINASC} Índice com base 100 em ${ANOS[0]}: as barras mostram a trajetória da unidade e do país na mesma escala. Brasil = soma dos nascidos vivos das 27 UFs.</p></div>
     <div class="full">
       <p class="eyebrow titulo-linha" style="margin:.4rem 0 .2rem">Abrangência territorial: da região à unidade</p>
       <div class="filtros-grid filtros-topo" style="margin-bottom:.9rem">
@@ -16485,6 +16537,14 @@ function desenhaDossie(){
   </div>`;
 
   grafBarras("dNV", ANOS, ANOS.map((_, a) => mt.blocos.nv_territorio[0][1][a]));
+
+  // evolução comparada unidade × Brasil, indexada no primeiro ano
+  const _nvU = ANOS.map((_, a) => mt.blocos.nv_territorio[0][1][a]);
+  const _nvB = ANOS.map((_, a) => nvBrasilAno(a));
+  grafBarrasDuplo("dNVBrasil", ANOS, [
+    {nome:"Unidade", cor:"#279261", vals:_nvU.map(v => v != null && _nvU[0] ? 100*v/_nvU[0] : null)},
+    {nome:"Brasil",  cor:"#0A213D", vals:_nvB.map(v => v != null && _nvB[0] ? 100*v/_nvB[0] : null)}
+  ]);
 
   // bloco de abrangência territorial dentro do dossiê
   const rTer = () => { document.getElementById("dTerr").innerHTML = montaTerritorioHTML(mt, dosRec, dosPersp); };
