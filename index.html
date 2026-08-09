@@ -16732,10 +16732,20 @@ const FICHAS_EXTRAS = [
    d:"Total de nascidos vivos com ao menos uma consulta, incluindo os registros com trimestre ignorado (por isso pode diferir do indicador \"% com pré-natal iniciado no 1º trimestre\" dos mapas, que exclui os ignorados).",
    fonte:"Ministério da Saúde - SINASC, 2019 a 2025."},
   {rot:"% de NV ocorridos no território de residência (Comparativo entre anos)",
-   desc:"Retenção territorial de nascimentos: das mães residentes em cada território, quantas pariram dentro do próprio território. Considera todos os nascimentos, não apenas maternidades estratégicas.",
-   n:"Nascidos vivos ocorridos no território e de mães residentes nesse mesmo território (\"ocorridos e residentes\").",
+   desc:"Retenção territorial de nascimentos: das mães residentes em cada território, quantas pariram dentro do próprio território. Considera todos os nascimentos, não apenas maternidades estratégicas. Nos níveis macrorregião e UF, o percentual agrega os nascidos na própria região de saúde (recorte todos) ou na própria macro (recorte <1500 g), seguindo a semântica das planilhas oficiais.",
+   n:"Nascidos vivos de mães residentes que ocorreram no próprio território de residência (nível região de saúde; agregado nos níveis macro e UF).",
    d:"Nascidos vivos de mães residentes no território, independentemente de onde ocorreu o parto.",
-   fonte:"Ministério da Saúde - SINASC, 2019 e 2024. Recorte \"todos os nascidos vivos\" por região de saúde, macro e UF; recorte \"<1500 g\" por macro e UF. Percentuais calculados na extração da planilha."}
+   fonte:"Ministério da Saúde - SINASC, microdados públicos (OpenDataSUS), série 2019-2025, com 2025 preliminar. Ambos os recortes (todos e <1500 g) por região de saúde, macro e UF. Extração própria validada contra as planilhas NV por Região e NV por Macro (2019 e 2024): diferenças médias de 0,1 a 0,4 ponto percentual."},
+  {rot:"Participação da unidade nos nascimentos da UF e do Brasil (topo do dossiê)",
+   desc:"Peso relativo da maternidade no total de nascimentos do seu estado e do país, no ano mais recente.",
+   n:"Nascidos vivos ocorridos na unidade em 2025.",
+   d:"Nascidos vivos totais da UF (SINASC) ou do Brasil — este obtido pela soma dos totais das 27 UFs.",
+   fonte:"Ministério da Saúde - SINASC, 2025."},
+  {rot:"Evolução comparada com o Brasil, 2019 = 100 (dossiê)",
+   desc:"Trajetória do volume de nascimentos da unidade e do país na mesma escala: cada série é dividida pelo próprio valor de 2019 e multiplicada por 100. Valores acima de 100 indicam crescimento em relação a 2019; abaixo, queda.",
+   n:"Nascidos vivos do ano (da unidade, ou do Brasil pela soma das 27 UFs).",
+   d:"Nascidos vivos de 2019 da mesma série (unidade ou Brasil).",
+   fonte:"Ministério da Saúde - SINASC, 2019 a 2025."}
 ];
 
 let _metodoPronta = false;
