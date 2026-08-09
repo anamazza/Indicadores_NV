@@ -578,8 +578,10 @@ function desenhaMapaCompEm(alvoId, ano){
 
 function desenhaComparativo(){
   if(typeof COMP === "undefined") return;
-  desenhaMapaCompEm("mapaComp2019", "2019");
-  desenhaMapaCompEm("mapaComp2024", "2024");
+  const anoA = document.getElementById("selAnoCompA").value || "2019";
+  const anoB = document.getElementById("selAnoCompB").value || "2024";
+  desenhaMapaCompEm("mapaComp2019", anoA);
+  desenhaMapaCompEm("mapaComp2024", anoB);
   const nomeNivel = {uf:"UF", macro:"macrorregião", rs:"região de saúde"}[compSel.nivel];
   document.getElementById("tituloLegComp").textContent =
     (compSel.recorte === "m1500" ? "% de NV <1500 g" : "% de NV") +
@@ -1328,7 +1330,7 @@ const FICHAS_EXTRAS = [
    n:"Nascidos vivos com pré-natal iniciado no primeiro trimestre.",
    d:"Total de nascidos vivos com ao menos uma consulta, incluindo os registros com trimestre ignorado (por isso pode diferir do indicador \"% com pré-natal iniciado no 1º trimestre\" dos mapas, que exclui os ignorados).",
    fonte:"Ministério da Saúde - SINASC, 2019 a 2025."},
-  {rot:"% de NV ocorridos no território de residência (Comparativo 2019 × 2024)",
+  {rot:"% de NV ocorridos no território de residência (Comparativo entre anos)",
    desc:"Retenção territorial de nascimentos: das mães residentes em cada território, quantas pariram dentro do próprio território. Considera todos os nascimentos, não apenas maternidades estratégicas.",
    n:"Nascidos vivos ocorridos no território e de mães residentes nesse mesmo território (\"ocorridos e residentes\").",
    d:"Nascidos vivos de mães residentes no território, independentemente de onde ocorreu o parto.",
@@ -1344,7 +1346,7 @@ function desenhaMetodologia(){
     ["CNES", "Cadastro Nacional dos Estabelecimentos de Saúde do Brasil. A ficha de cadastro vem da API oficial de Dados Abertos do Ministério da Saúde e as habilitações ativas do serviço do próprio site do CNES, com atualização automática semestral (1º de junho e 1º de dezembro)."],
     ["SIH/AIH", "Sistema de Informações Hospitalares do SUS. Origem do volume anual de partos por estabelecimento e dos pontos de contexto do mapa de unidades (estabelecimentos com 480 ou mais partos/ano, produção de 2025)."],
     ["Malhas territoriais", "Limites de estados, macrorregiões de saúde (121) e regiões de saúde (439) compactados em SVG a partir das malhas oficiais utilizadas nos projetos de regionalização."],
-    ["Comparativo 2019 × 2024", "Extrações do SINASC por território de residência e ocorrência: todos os nascidos vivos por região de saúde, macro e UF; e nascidos vivos <1500 g por macro e UF. Planilhas NV por Região e NV por Macro."],
+    ["Comparativo entre anos", "Microdados públicos do SINASC (OpenDataSUS), série 2019-2025, processados por território de residência e ocorrência: todos os nascidos vivos e <1500 g, por região de saúde, macro e UF. Nos níveis macro e UF, o percentual agrega os nascidos na própria região de saúde (todos) ou na própria macro (<1500 g), como nas planilhas oficiais. 2025 preliminar. Extração validada contra as planilhas NV por Região e NV por Macro (2019 e 2024)."],
     ["Localização das unidades", "Coordenadas geográficas (latitude e longitude) de cada estabelecimento, georreferenciadas a partir do cadastro CNES."]
   ];
   const fichaHTML = (rot, desc, n, d, meta, obs, fonte) => `
@@ -1434,7 +1436,7 @@ function inicia(){
     {alvo:"secUnidades", rot:"Mapa de unidades", ico:ICO('<path d="M12 21s-7-5.3-7-11a7 7 0 0 1 14 0c0 5.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>')},
     {alvo:"secDossie", rot:"Dossiê da unidade", ico:ICO('<path d="M5 21V8l7-4 7 4v13"/><path d="M9.5 21v-4.5h5V21"/><path d="M12 8v3.5M10.25 9.75h3.5"/><path d="M4 21h16"/>')},
     {alvo:"secComparar", rot:"Comparar unidades", ico:ICO('<path d="M6 3v18M18 3v18"/><path d="M6 8h5M13 8h5M6 13h5M13 13h5"/>')},
-    {alvo:"secComparativo", rot:"Comparativo 2019 × 2024", ico:ICO('<rect x="3" y="5" width="7.5" height="14" rx="1.5"/><rect x="13.5" y="5" width="7.5" height="14" rx="1.5"/>')},
+    {alvo:"secComparativo", rot:"Comparativo entre anos", ico:ICO('<rect x="3" y="5" width="7.5" height="14" rx="1.5"/><rect x="13.5" y="5" width="7.5" height="14" rx="1.5"/>')},
     {alvo:"__metodo", rot:"Metodologia", ico:ICO('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/>')}
   ];
   const trilho = document.getElementById("trilho");
@@ -1547,15 +1549,18 @@ function inicia(){
   });
   sNC.addEventListener("change", () => { compSel.nivel = sNC.value; desenhaComparativo(); });
   const sRecC = document.getElementById("selRecorteComp");
-  sRecC.addEventListener("change", () => {
-    compSel.recorte = sRecC.value;
-    // <1500g só existe por macro e UF
-    const opRS = sNC.querySelector('option[value="rs"]');
-    opRS.disabled = compSel.recorte === "m1500";
-    opRS.hidden = opRS.disabled;   // some da lista: recorte <1500g não existe por região de saúde
-    if(opRS.disabled && compSel.nivel === "rs"){ compSel.nivel = "macro"; sNC.value = "macro"; }
-    desenhaComparativo();
-  });
+  sRecC.addEventListener("change", () => { compSel.recorte = sRecC.value; desenhaComparativo(); });
+  // seletores de ano dos dois mapas (série completa dos microdados; 2025 preliminar)
+  if(typeof COMP !== "undefined"){
+    const rotAno = a => (COMP.preliminar || []).includes(a) ? a + " · preliminar" : a;
+    const ops = COMP.anos.map(a => `<option value="${a}">${rotAno(a)}</option>`).join("");
+    const sAA = document.getElementById("selAnoCompA");
+    const sAB = document.getElementById("selAnoCompB");
+    sAA.innerHTML = ops; sAA.value = "2019";
+    sAB.innerHTML = ops; sAB.value = "2024";
+    sAA.addEventListener("change", desenhaComparativo);
+    sAB.addEventListener("change", desenhaComparativo);
+  }
   preencheUFComp();
   desenhaComparativo();
 

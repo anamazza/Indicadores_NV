@@ -1,3 +1,4 @@
 atualizacao_cnes.log
 __pycache__/
 *.pyc
+deploy/

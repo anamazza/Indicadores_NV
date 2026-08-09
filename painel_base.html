@@ -157,6 +157,8 @@ section:nth-of-type(even) table.dados tbody tr:nth-child(odd){background:var(--b
 .mapa-svg-box .t:hover{opacity:.8; stroke:var(--verde-esmeralda); stroke-width:1.4}
 
 /* divisórias do comparativo: traço escuro fino, legível sobre as cores claras */
+.sel-ano-comp{font:inherit; font-weight:800; color:var(--indigo); border:1.5px solid #C9DCCE;
+  border-radius:9px; padding:.15rem .5rem; background:#FFF; cursor:pointer}
 #mapaComp2019 .t, #mapaComp2024 .t{stroke:#4A5B52; stroke-width:.75; vector-effect:non-scaling-stroke}
 #mapaComp2019 .t:hover, #mapaComp2024 .t:hover{stroke:var(--indigo); stroke-width:1.6}
 
@@ -512,13 +514,13 @@ footer a{color:var(--verde-lima)}
   </div>
 </section>
 
-<!-- ========================= COMPARATIVO 2019 x 2024 ========================= -->
+<!-- ========================= COMPARATIVO ENTRE ANOS ========================= -->
 <section id="secComparativo">
   <div class="wrap">
     <div class="sec-head">
       <p class="eyebrow">Cenários</p>
-      <h2>Comparativo 2019 × 2024: nascimentos na região de residência</h2>
-      <p style="max-width:none">Percentual dos nascidos vivos que ocorreram no próprio território de residência da mãe, considerando todos os nascimentos (não apenas maternidades estratégicas). Escolha o recorte, o nível territorial e o filtro: os dois mapas reagem juntos.</p>
+      <h2>Comparativo entre anos: nascimentos na região de residência</h2>
+      <p style="max-width:none">Percentual dos nascidos vivos que ocorreram no próprio território de residência da mãe, considerando todos os nascimentos (não apenas maternidades estratégicas). Escolha o recorte, o nível territorial, o filtro e o ano de cada mapa: os dois mapas reagem juntos.</p>
     </div>
     <div class="filtros-grid filtros-topo">
       <label class="filtro"><span>Recorte</span>
@@ -542,13 +544,13 @@ footer a{color:var(--verde-lima)}
         </select></label>
     </div>
     <div class="grid-2">
-      <div class="card"><h3>2019</h3><div id="mapaComp2019"></div></div>
-      <div class="card"><h3>2024</h3><div id="mapaComp2024"></div></div>
+      <div class="card"><h3><select id="selAnoCompA" class="sel-ano-comp"></select></h3><div id="mapaComp2019"></div></div>
+      <div class="card"><h3><select id="selAnoCompB" class="sel-ano-comp"></select></h3><div id="mapaComp2024"></div></div>
     </div>
     <div class="card" style="margin-top:1.1rem">
       <h4 class="titulo-legenda" id="tituloLegComp">% de NV ocorridos na região de residência</h4>
       <div class="legenda" id="legendaComp"></div>
-      <p class="fonte">Fonte: Ministério da Saúde - SINASC · todos os nascimentos do território (não apenas maternidades estratégicas) · dados sujeitos a revisão.</p>
+      <p class="fonte">Fonte: Ministério da Saúde - SINASC, microdados públicos (OpenDataSUS), série 2019-2025 · todos os nascimentos do território (não apenas maternidades estratégicas) · 2025 preliminar · dados sujeitos a revisão.</p>
     </div>
   </div>
 </section>
