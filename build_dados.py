@@ -72,6 +72,72 @@ if sem:
 else:
     print("   todas as maternidades estratégicas têm lat/lon")
 
+# ---------- 2b. unidades novas: EBSERH e QUALINEO ----------
+# As 59 do painel antigo sao o conjunto "estrategica". A partir de 08/2026 entram
+# tambem as unidades da planilha EBSERH e as novas do QUALINEO 26/27 - cada unidade
+# guarda em `conjuntos` a que grupos pertence (uma unidade pode estar em mais de um).
+import importlib.util
+import blocos_painel
+
+ANOS_TXT = [str(a) for a in dados.get("anos", range(2019, 2026))]
+ADICIONAIS = [
+    ("ebserh",   "INDICADORES MATERNIDADES DE REFERENCIA_EBSERH_2019_2025.xlsx", "_config_ebserh"),
+    ("qualineo", "INDICADORES MATERNIDADES QUALINEO NOVAS_2019_2025.xlsx", "_config_qualineo"),
+    ("qualineo", "INDICADORES MATERNIDADES DE REFERENCIA_2019_2025 atualizada 22_7.xlsx",
+     "_config_qualineo2"),
+]
+CFG_DIR = os.path.join(PROJ, "Gerador_NV2026", "adicionar_unidades")
+UF_NOME_PT = {"RO":"Rondônia","AC":"Acre","AM":"Amazonas","RR":"Roraima","PA":"Pará","AP":"Amapá",
+              "TO":"Tocantins","MA":"Maranhão","PI":"Piauí","CE":"Ceará","RN":"Rio Grande do Norte",
+              "PB":"Paraíba","PE":"Pernambuco","AL":"Alagoas","SE":"Sergipe","BA":"Bahia",
+              "MG":"Minas Gerais","ES":"Espírito Santo","RJ":"Rio de Janeiro","SP":"São Paulo",
+              "PR":"Paraná","SC":"Santa Catarina","RS":"Rio Grande do Sul","MS":"Mato Grosso do Sul",
+              "MT":"Mato Grosso","GO":"Goiás","DF":"Distrito Federal"}
+
+def _carrega_config(nome):
+    spec = importlib.util.spec_from_file_location(nome, os.path.join(CFG_DIR, nome + ".py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+por_cnes = {m["cnes"].zfill(7): m for m in mats}
+for m in mats:
+    m["conjuntos"] = ["estrategica"]
+
+novas = 0
+for conjunto, xlsx, cfg_nome in ADICIONAIS:
+    cfg = _carrega_config(cfg_nome)
+    alvo = {c.zfill(7) for c in cfg.CNES}
+    blocos = blocos_painel.blocos_da_planilha(os.path.join(PROJ, xlsx), ANOS_TXT, alvo)
+    for cnes in sorted(alvo):
+        if cnes not in blocos:
+            print(f"   ATENÇÃO: {cnes} sem bloco em {xlsx}"); continue
+        nome_pl, aba, bl, terr = blocos[cnes]
+        ja = por_cnes.get(cnes)
+        if ja is not None:                       # ja e uma das 59: so marca o conjunto
+            if conjunto not in ja["conjuntos"]: ja["conjuntos"].append(conjunto)
+            continue
+        uf = cfg.UF_POR_CNES[cnes]
+        mt = {"cnes": cnes, "nome": cfg.NOME_EXIBICAO[cnes], "nomePlanilha": nome_pl,
+              "uf": uf, "regiao": aba,
+              "territorio": {"municipio": terr.get("municipio", ""),
+                             "regiao_saude": terr.get("regiao_saude", ""),
+                             "macro": terr.get("macro", ""),
+                             "uf": terr.get("uf", UF_NOME_PT.get(uf, uf))},
+              "blocos": bl, "conjuntos": [conjunto]}
+        p = pontos.get(cnes)
+        if p:
+            mt["lat"], mt["lon"], mt["partosAIH"] = p["lat"], p["lon"], p["partos"]
+        else:
+            mt["lat"] = mt["lon"] = None; mt["partosAIH"] = None
+            print(f"   ATENÇÃO: {cnes} {mt['nome']} sem lat/lon")
+        mats.append(mt); por_cnes[cnes] = mt; novas += 1
+
+conta = {}
+for m in mats:
+    for c in m["conjuntos"]: conta[c] = conta.get(c, 0) + 1
+print(f"[2b] {novas} unidades novas | total {len(mats)} | por conjunto: {conta}")
+
 # ---------- 3. GEO compactado da referência ----------
 ref = open(REF_PAGE, encoding="utf-8").read()
 m = re.search(r'const GEO = (\{.*?\});', ref, re.S)

@@ -602,6 +602,27 @@ function iniciaLeaflet(){
   }).addTo(leaf);
   desenhaPontos();
 }
+/* conjuntos: as 59 estratégicas em verde; as unidades novas em tons de azul */
+const CONJUNTOS = {
+  estrategica:{rot:"Maternidade estratégica", fundo:"#279261", borda:"#154A4B"},
+  ebserh:     {rot:"Unidade EBSERH",          fundo:"#2471A3", borda:"#103B5E"},
+  qualineo:   {rot:"QUALINEO 2026/2027",      fundo:"#5FB0D9", borda:"#1B6B8F"},
+};
+const ORDEM_CONJ = ["estrategica", "ebserh", "qualineo"];
+/* uma unidade pode pertencer a mais de um conjunto (5 das novas já eram estratégicas).
+   Para não repeti-la em dois seletores, cada uma entra só no primeiro desta ordem —
+   que é também a cor que ela recebe no mapa. */
+function conjuntoPrincipal(m){
+  const c = m.conjuntos || ["estrategica"];
+  return ORDEM_CONJ.find(k => c.includes(k)) || "estrategica";
+}
+function corDoConjunto(m){
+  return CONJUNTOS[conjuntoPrincipal(m)];
+}
+function rotuloConjuntos(m){
+  const c = m.conjuntos || ["estrategica"];
+  return ORDEM_CONJ.filter(k => c.includes(k)).map(k => CONJUNTOS[k].rot).join(" · ");
+}
 function passaFiltroPonto(p){
   const reg = document.getElementById("selRegiaoLeaflet").value;
   const uf = document.getElementById("selUFLeaflet").value;
@@ -629,7 +650,7 @@ function desenhaPontos(){
     });
     leaf.addLayer(camadaCtx);
   }
-  // estratégicas (verde, por cima)
+  // maternidades: verde para as estratégicas, tons de azul para as unidades novas
   camadaEstr = L.markerClusterGroup({maxClusterRadius:30, disableClusteringAtZoom:7});
   const visiveis = [];
   MAT.filter(m => passaFiltroPonto({uf:m.uf, nome:m.nome})).forEach(m => {
@@ -638,9 +659,11 @@ function desenhaPontos(){
     const nv = valorUnidade(m, indPorId("nv"), NT-1);
     const ces = valorUnidade(m, indPorId("ces"), NT-1);
     const enf = valorUnidade(m, indPorId("enf"), NT-1);
-    const mk = L.circleMarker([m.lat, m.lon], {radius:8, color:"#154A4B", weight:2, fillColor:"#279261", fillOpacity:.95});
+    const cor = corDoConjunto(m);
+    const mk = L.circleMarker([m.lat, m.lon], {radius:8, color:cor.borda, weight:2, fillColor:cor.fundo, fillOpacity:.95});
     mk.bindPopup(`<div class="pop-nome">${esc(m.nome)}</div>
       <div>${esc(m.territorio.municipio)} · ${m.uf} · CNES ${m.cnes}</div>
+      <div style="color:${cor.borda}; font-weight:700">${esc(rotuloConjuntos(m))}</div>
       <div style="margin-top:.25rem">Nascidos vivos 2025: <b>${fmtInt(nv)}</b></div>
       <div><u>Via de nascimento</u>: Cesárea <b>${fmtPct(ces)}</b> · Vaginal: <b>${ces == null ? "—" : fmtPct(100 - ces)}</b></div>
       <div>Parto vaginal por enfermeira/obstetriz: <b>${fmtPct(enf)}</b> <span style="color:#4E6A5C">(meta ≥50%)</span></div>
@@ -1087,6 +1110,7 @@ function desenhaDossie(){
       <div class="meta">
         <span>CNES ${mt.cnes}</span><span>${esc(t.municipio)} · ${mt.uf}</span>
         <span>Região de saúde: ${esc(t.regiao_saude)}</span><span>${esc(t.macro)}</span>
+        <span>${esc(rotuloConjuntos(mt))}</span>
         ${mt.partosAIH ? `<span>${fmtInt(mt.partosAIH)} partos/ano (SIH 2025)</span>` : ""}
       </div>
     </div>
@@ -1420,9 +1444,10 @@ function fecharMetodo(voltarHistorico = true){
 /* ============================================================
    LIGAÇÕES DE INTERFACE
    ============================================================ */
-function opcaoUnidades(sel){
+function opcaoUnidades(sel, conjunto){
   const porUF = {};
-  MAT.forEach(m => { (porUF[m.uf] = porUF[m.uf] || []).push(m); });
+  const lista = conjunto ? MAT.filter(m => conjuntoPrincipal(m) === conjunto) : MAT;
+  lista.forEach(m => { (porUF[m.uf] = porUF[m.uf] || []).push(m); });
   sel.innerHTML = Object.keys(porUF).sort().map(uf =>
     `<optgroup label="${UF_NOME[uf]}">` +
     porUF[uf].sort((a,b) => a.nome.localeCompare(b.nome)).map(m => `<option value="${m.cnes}">${esc(m.nome)}</option>`).join("") +
@@ -1591,12 +1616,22 @@ function inicia(){
     if(leaf) leaf.setView([-14.5, -52], 4);
   });
 
-  // dossiê — seletor no painel + página sobreposta
+  // dossiê — um seletor por conjunto + página sobreposta
   const sU = document.getElementById("selUnidade");
-  opcaoUnidades(sU);
+  opcaoUnidades(sU, "estrategica");
   sU.value = estado.cnes;
   sU.addEventListener("change", () => { estado.cnes = sU.value; });
   document.getElementById("btnAbrirDossie").addEventListener("click", () => abrirDossie(sU.value));
+  [["Ebserh", "ebserh", "nEbserh"], ["Qualineo", "qualineo", "nQualineo"]].forEach(([sufixo, conj, elN]) => {
+    const s = document.getElementById("selUnidade" + sufixo);
+    if(!s) return;
+    opcaoUnidades(s, conj);
+    document.getElementById("btnAbrirDossie" + sufixo).addEventListener("click", () => abrirDossie(s.value));
+    const n = document.getElementById(elN);
+    if(n) n.textContent = `(${MAT.filter(m => conjuntoPrincipal(m) === conj).length})`;
+  });
+  const nEstr = document.getElementById("nEstr");
+  if(nEstr) nEstr.textContent = `(${MAT.filter(m => conjuntoPrincipal(m) === "estrategica").length})`;
   const sPd = document.getElementById("selUnidadePd");
   opcaoUnidades(sPd);
   sPd.value = estado.cnes;
