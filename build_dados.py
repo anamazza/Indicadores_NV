@@ -86,7 +86,14 @@ ADICIONAIS = [
     ("qualineo", "INDICADORES MATERNIDADES DE REFERENCIA_2019_2025 atualizada 22_7.xlsx",
      "_config_qualineo2"),
     ("qualineo", "INDICADORES MATERNIDADES QUALINEO NOVE_2019_2025.xlsx", "_config_qualineo_nove"),
+    # Iauarete veio na planilha APOIADAS de indicadores assistenciais (28/08/2026);
+    # entra no conjunto das estrategicas/apoiadas para a coordenacao avaliar
+    ("estrategica", "INDICADORES MATERNIDADE IAUARETE_2019_2025.xlsx", "_config_iauarete"),
 ]
+
+# coordenadas de unidades fora do acervo AIH (sem producao de parto na AIH):
+# Iauarete = ficha CNES (API apidadosabertos, 28/08/2026)
+COORDS_EXTRA = {"2717387": {"lat": -0.1364627, "lon": -67.083642, "partos": None}}
 CFG_DIR = os.path.join(PROJ, "Gerador_NV2026", "adicionar_unidades")
 UF_NOME_PT = {"RO":"Rondônia","AC":"Acre","AM":"Amazonas","RR":"Roraima","PA":"Pará","AP":"Amapá",
               "TO":"Tocantins","MA":"Maranhão","PI":"Piauí","CE":"Ceará","RN":"Rio Grande do Norte",
@@ -126,7 +133,7 @@ for conjunto, xlsx, cfg_nome in ADICIONAIS:
                              "macro": terr.get("macro", ""),
                              "uf": terr.get("uf", UF_NOME_PT.get(uf, uf))},
               "blocos": bl, "conjuntos": [conjunto]}
-        p = pontos.get(cnes)
+        p = pontos.get(cnes) or COORDS_EXTRA.get(cnes)
         if p:
             mt["lat"], mt["lon"], mt["partosAIH"] = p["lat"], p["lon"], p["partos"]
         else:
@@ -138,6 +145,27 @@ conta = {}
 for m in mats:
     for c in m["conjuntos"]: conta[c] = conta.get(c, 0) + 1
 print(f"[2b] {novas} unidades novas | total {len(mats)} | por conjunto: {conta}")
+
+# ---------- 2c. indicadores assistenciais (planilhas de 26/08/2026) ----------
+# Perfil sociodemografico (SINASC), internacoes obstetricas/neonatais (SIH) e
+# morbidade neonatal — ver Indicadores_Assistenciais/LEIA-ME.md.
+import blocos_assistenciais
+
+assist, avisos_a = blocos_assistenciais.carregar(os.path.join(PROJ, "Indicadores_Assistenciais"))
+com_a = 0
+for m in mats:
+    b = assist.pop(m["cnes"], None)
+    if b:
+        m["assistenciais"] = {"origem": b["origem"], "secoes": b["secoes"]}
+        com_a += 1
+sem_a = [m for m in mats if "assistenciais" not in m]
+print(f"[2c] indicadores assistenciais: {com_a} unidades com bloco | {len(sem_a)} sem")
+for m in sem_a:
+    print(f"     sem bloco: {m['cnes']} {m['nome']}")
+for cnes, b in assist.items():
+    print(f"     ATENÇÃO bloco sem unidade no painel: {cnes} {b['nome']} ({b['origem']})")
+for a in avisos_a:
+    print("     AVISO:", a)
 
 # ---------- 3. GEO compactado da referência ----------
 ref = open(REF_PAGE, encoding="utf-8").read()

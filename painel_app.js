@@ -597,8 +597,10 @@ function desenhaComparativo(){
 let leaf = null, camadaEstr = null, camadaCtx = null;
 function iniciaLeaflet(){
   leaf = L.map("mapaLeaflet", {scrollWheelZoom:true}).setView([-14.5, -52], 4);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-    attribution:'&copy; OpenStreetMap &copy; CARTO', maxZoom:18
+  // 28/08/2026: o basemap do CARTO passou a exigir chave de API (tiles com marca
+  // "API KEY REQUIRED") — trocado pelo OpenStreetMap padrão, gratuito e sem chave
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom:18
   }).addTo(leaf);
   desenhaPontos();
 }
@@ -1053,6 +1055,12 @@ document.addEventListener("click", e => {
   if(tdv){ abrirTendencia(tdv.dataset.ind); return; }
   const th = e.target.closest("th.th-ano");
   if(th){
+    const ta = th.closest("table[data-assist]");
+    if(ta){
+      abrirGraficoAnoAssist(ta.dataset.assist, +th.dataset.a,
+        (th.closest(".card")?.querySelector("h3")?.textContent || "").trim());
+      return;
+    }
     const tbl = th.closest("table[data-bloco]");
     if(tbl) abrirGraficoAno(tbl.dataset.bloco, +th.dataset.a, tbl.dataset.pct === "1",
       (th.closest(".card")?.querySelector("h3")?.textContent || "").trim());
@@ -1062,6 +1070,122 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => { if(e.key === "Escape") fecharModalGrafico(); });
 const FONTE_SINASC = "Fonte: Ministério da Saúde - SINASC · dados sujeitos a revisão.";
+const FONTE_SIH = "Fonte: Ministério da Saúde - SIH/SUS · dados sujeitos a revisão.";
+
+/* ============================================================
+   INDICADORES ASSISTENCIAIS (planilhas da coordenação, 26/08/2026)
+   mt.assistenciais = {origem, secoes:[{titulo, linhas:[{rotulo, fmt, valores[7]}]}]}
+   ============================================================ */
+const ASSIST_CARDS = [
+  {id:"idade",     h:"Idade da mãe (%)",                          fonte:"SINASC"},
+  {id:"raca",      h:"Raça/cor da mãe (%)",                       fonte:"SINASC"},
+  {id:"escola",    h:"Escolaridade da mãe (anos de estudo) (%)",  fonte:"SINASC"},
+  {id:"conjugal",  h:"Situação conjugal da mãe (%)",              fonte:"SINASC"},
+  {id:"motivo",    h:"Internações obstétricas: motivo (%)",       fonte:"SIH"},
+  {id:"saida_obs", h:"Internações obstétricas: tipo de saída (%)",fonte:"SIH"},
+  {id:"volume",    h:"Internações obstétricas: volume e procedimentos", fonte:"SIH"},
+  {id:"acomp",     h:"Internações com presença de acompanhante (%)", fonte:"SIH"},
+  {id:"ocup",      h:"Ocupação e permanência (obstetrícia)",      fonte:"SIH"},
+  {id:"saida_neo", h:"Internações neonatais: tipo de saída (%)",  fonte:"SIH"},
+  {id:"neo",       h:"Internações neonatais e UTI",               fonte:"SIH"},
+  {id:"morb",      h:"Morbidade neonatal",                        fonte:"SINASC"},
+];
+const ASSIST_MAP = [
+  [/por idade da mãe - (.+)$/,                       "idade",     null],
+  [/por raça\/cor da mãe - (.+)$/,                   "raca",      null],
+  [/por escolaridade da mãe - (.+)$/,                "escola",    null],
+  [/por situação conjugal da mãe - (.+)$/,           "conjugal",  null],
+  [/obstétricas por motivos de internação - (.+)$/,  "motivo",    null],
+  [/obstétricas por tipo de saída - (.+)$/,          "saida_obs", null],
+  [/^Número de internações obstétricas$/,            "volume",    "Internações obstétricas (nº)"],
+  [/aborto legal/,                                   "volume",    "Internações para aborto legal (nº)"],
+  [/AMIU/,                                           "volume",    "AMIU entre esvaziamentos uterinos (%)"],
+  [/parto vaginal com presença de acompanhante/,     "acomp",     "Parto vaginal"],
+  [/cesariana com presença de acompanhante/,         "acomp",     "Cesariana"],
+  [/resultaram em parto com presença de acompanhante/,"acomp",    "Todas que resultaram em parto"],
+  [/^Taxa de Ocupação - Obstétricas$/,               "ocup",      "Taxa de ocupação (%)"],
+  [/^Tempo médio de permanência - geral$/,           "ocup",      "Permanência média: geral (dias)"],
+  [/^Tempo médio de permanência - parto vaginal$/,   "ocup",      "Permanência média: parto vaginal (dias)"],
+  [/^Tempo médio de permanência - cesariana$/,       "ocup",      "Permanência média: cesariana (dias)"],
+  [/^Tempo médio de permanência - aborto$/,          "ocup",      "Permanência média: aborto (dias)"],
+  [/^Tempo médio de permanência - intercorrências/,  "ocup",      "Permanência média: intercorrências (dias)"],
+  [/neonatais por tipo de saída - (.+)$/,            "saida_neo", null],
+  [/^Número de internações neonatais$/,              "neo",       "Internações neonatais (nº)"],
+  [/internações neonatais em UTI neonatal/,          "neo",       "Em UTI neonatal (%)"],
+  [/^Taxa de Ocupação - UTI neonatal$/,              "neo",       "Taxa de ocupação da UTI (%)"],
+  [/^Tempo médio de permanência - UTI neonatal$/,    "neo",       "Permanência média na UTI (dias)"],
+  [/condições potencialmente ameaçadoras/,           "morb",      "NV com condições potencialmente ameaçadoras à vida (%)"],
+];
+function fmtAssist(v, fmt){
+  if(v == null) return "—";
+  if(fmt === "pct") return fmtPct(v);
+  if(fmt === "dias") return v.toLocaleString("pt-BR", {minimumFractionDigits:1, maximumFractionDigits:1});
+  return fmtInt(v);
+}
+function gruposAssist(mt){
+  if(!mt.assistenciais) return null;
+  const grupos = {};
+  mt.assistenciais.secoes.forEach(s => s.linhas.forEach(l => {
+    for(const [re, id, rotFixo] of ASSIST_MAP){
+      const m = l.rotulo.match(re);
+      if(m){ (grupos[id] = grupos[id] || []).push({rot: rotFixo || m[1], fmt: l.fmt, valores: l.valores}); return; }
+    }
+    (grupos.outros = grupos.outros || []).push({rot: l.rotulo, fmt: l.fmt, valores: l.valores});
+  }));
+  return grupos;
+}
+function tabelaAssist(linhas, idCard){
+  const rows = linhas.map(l =>
+    `<tr><td>${esc(l.rot)}</td>${l.valores.map(v => `<td class="mono">${fmtAssist(v, l.fmt)}</td>`).join("")}</tr>`
+  ).join("");
+  // ano clicavel (grafico do ano) so quando todas as linhas tem o mesmo formato —
+  // nos cards mistos (nº + % + dias) a barra compararia grandezas diferentes
+  const uniforme = idCard && linhas.every(l => l.fmt === linhas[0].fmt);
+  const ths = uniforme ? thsAno(false) : ANOS.map(a => `<th>${a}</th>`).join("");
+  const attr = uniforme ? ` data-assist="${idCard}"` : "";
+  return `<div class="tab-wrap"><table class="dados"${attr}><thead><tr><th></th>${ths}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function assistenciaisHTML(mt){
+  const sep = `<div class="full"><p class="eyebrow titulo-linha" style="margin:1rem 0 .2rem">Perfil das mães e assistência hospitalar (SINASC · SIH)</p></div>`;
+  const grupos = gruposAssist(mt);
+  if(!grupos){
+    return sep + `<div class="card full"><p class="suave">Indicadores assistenciais ainda não disponíveis para esta unidade — extração em andamento.</p></div>`;
+  }
+  let html = sep;
+  ASSIST_CARDS.forEach(c => {
+    if(!grupos[c.id]) return;
+    const fonte = c.fonte === "SIH" ? FONTE_SIH : FONTE_SINASC;
+    html += `<div class="card"><h3>${esc(c.h)}</h3>${tabelaAssist(grupos[c.id], c.id)}<p class="fonte">${fonte}</p></div>`;
+  });
+  if(grupos.outros)
+    html += `<div class="card"><h3>Outros indicadores</h3>${tabelaAssist(grupos.outros, null)}<p class="fonte">${FONTE_SIH}</p></div>`;
+  return html;
+}
+function abrirGraficoAnoAssist(idCard, a, tituloCard){
+  const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
+  const grupos = gruposAssist(mt);
+  if(!grupos || !grupos[idCard]) return;
+  const card = ASSIST_CARDS.find(c => c.id === idCard);
+  const linhas = grupos[idCard].filter(l => l.valores[a] != null);
+  if(!linhas.length || a >= NT) return;
+  const fmt = linhas[0].fmt, pct = fmt === "pct";
+  const W = 660, rh = 40, mEsq = 200, H = linhas.length * rh + 12;
+  const max = Math.max(...linhas.map(l => l.valores[a]), pct ? 100 : 1);
+  let s = `<svg class="graf" viewBox="0 0 ${W} ${H}">`;
+  linhas.forEach((l, i) => {
+    const v = l.valores[a], y = 8 + i * rh;
+    const w = (W - mEsq - 84) * v / max;
+    s += `<text x="${mEsq - 8}" y="${y + 17}" text-anchor="end" font-size="12.5" fill="#1D3229">${esc(String(l.rot).length > 26 ? String(l.rot).slice(0,25) + "…" : l.rot)}</text>`;
+    s += `<rect x="${mEsq}" y="${y + 5}" width="${Math.max(w, 2).toFixed(1)}" height="${rh - 16}" rx="6" fill="#279261"/>`;
+    s += `<text x="${(mEsq + Math.max(w, 2) + 8).toFixed(1)}" y="${y + 17}" font-size="12.5" font-weight="800" fill="#1D3229">${fmtAssist(v, fmt)}</text>`;
+  });
+  s += "</svg>";
+  const fonte = card && card.fonte === "SIH" ? "SIH/SUS" : "SINASC";
+  document.getElementById("mgTitulo").textContent = (tituloCard || "Distribuição") + " · " + ANOS[a];
+  document.getElementById("mgSub").textContent = mt.nome + " - " + mt.uf + " · Fonte: " + fonte + ", dados sujeitos a revisão.";
+  document.getElementById("mgConteudo").innerHTML = s;
+  document.getElementById("modalGrafico").hidden = false;
+}
 
 function abrirDossie(cnes){
   estado.cnes = cnes;
@@ -1161,6 +1285,7 @@ function desenhaDossie(){
     <div class="card full"><h3>Taxa de cesárea segundo grupo de Robson</h3>
       ${tabelaBloco(mt, "robson_taxa", {pct:true, metaCol:true, metas:{"Grupo 1":10,"Grupo 2":35,"Grupo 3":3,"Grupo 4":15}})}
       <p class="fonte">${FONTE_SINASC} Metas: G1 ≤10% · G2 ≤35% · G3 ≤3% · G4 ≤15% (verde = na meta, vermelho = acima).</p></div>
+    ${assistenciaisHTML(mt)}
   </div>`;
 
   grafBarras("dNV", ANOS, ANOS.map((_, a) => mt.blocos.nv_territorio[0][1][a]));
