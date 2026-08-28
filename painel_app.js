@@ -747,7 +747,7 @@ function grafLinhas(alvo, series, opts = {}){
     s += `<text x="${mL-6}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="11.5" fill="#4E6A5C">${opts.fmt ? opts.fmt(v) : (opts.pct ? Math.round(v) + "%" : fmtInt(v))}</text>`;
   }
   ANOS.forEach((ano, i) => {
-    s += `<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="12" fill="#4E6A5C">${ano}</text>`;
+    s += `<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="12" font-weight="700" fill="#1D3229">${ano}</text>`;
   });
   if(opts.meta != null){
     const y = Y(opts.meta);
@@ -1041,6 +1041,45 @@ function abrirGraficoAno(bloco, a, pct, tituloCard){
   document.getElementById("modalGrafico").hidden = false;
 }
 function fecharModalGrafico(){ document.getElementById("modalGrafico").hidden = true; }
+
+/* baixar o grafico do modal como PNG (pedido da Tatiana, 28/08) */
+function baixarPngModal(){
+  const svg = document.querySelector("#mgConteudo svg");
+  if(!svg) return;
+  const vb = svg.viewBox.baseVal;
+  const escala = 2.5;                      // resolucao boa para colar em documento
+  const W = Math.round(vb.width * escala), H = Math.round(vb.height * escala);
+  const alto = 64 * (escala / 2);          // faixa branca extra para titulo + subtitulo
+  const xml = new XMLSerializer().serializeToString(svg);
+  const url = URL.createObjectURL(new Blob([xml], {type: "image/svg+xml;charset=utf-8"}));
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H + alto;
+    const cx = cv.getContext("2d");
+    cx.fillStyle = "#FFFFFF"; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.fillStyle = "#1D3229";
+    cx.font = "700 " + Math.round(15 * escala / 2 * 1.25) + "px Arial";
+    cx.fillText(document.getElementById("mgTitulo").textContent, 16, 26 * (escala / 2));
+    cx.fillStyle = "#4E6A5C";
+    cx.font = Math.round(11.5 * escala / 2 * 1.25) + "px Arial";
+    cx.fillText(document.getElementById("mgSub").textContent, 16, 48 * (escala / 2));
+    cx.drawImage(img, 0, alto, W, H);
+    URL.revokeObjectURL(url);
+    const nome = (document.getElementById("mgTitulo").textContent || "grafico")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 90) || "grafico";
+    const a = document.createElement("a");
+    a.download = nome + ".png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+  };
+  img.src = url;
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const b = document.getElementById("btnBaixarPng");
+  if(b) b.addEventListener("click", baixarPngModal);
+});
 function abrirTendencia(indId){
   const ind = indPorId(indId);
   const mt = MAT.find(m => m.cnes === evoCnes) || MAT[0];
@@ -1056,11 +1095,12 @@ document.addEventListener("click", e => {
   if(tdv){ abrirTendencia(tdv.dataset.ind); return; }
   const tdr = e.target.closest("td.rot-click");
   if(tdr){
+    const tituloCard = (tdr.closest(".card")?.querySelector("h3")?.textContent || "").trim();
     if(tdr.dataset.acard){
-      abrirTendenciaAssist(tdr.dataset.acard, +tdr.dataset.row);
+      abrirTendenciaAssist(tdr.dataset.acard, +tdr.dataset.row, tituloCard);
     } else {
       const tb = tdr.closest("table[data-bloco]");
-      if(tb) abrirTendenciaBloco(tb.dataset.bloco, +tdr.dataset.row, tb.dataset.pct === "1");
+      if(tb) abrirTendenciaBloco(tb.dataset.bloco, +tdr.dataset.row, tb.dataset.pct === "1", tituloCard);
     }
     return;
   }
@@ -1174,7 +1214,7 @@ function assistenciaisHTML(mt){
 }
 /* clique no INDICADOR (rótulo da linha): evolução 2019-2025 (pedido da Tatiana, 28/08) */
 const METAS_ROBSON = {"Grupo 1": 10, "Grupo 2": 35, "Grupo 3": 3, "Grupo 4": 15};
-function abrirTendenciaBloco(bloco, ri, pctTabela){
+function abrirTendenciaBloco(bloco, ri, pctTabela, tituloCard){
   const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
   const b = mt.blocos[bloco];
   if(!b || !b[ri]) return;
@@ -1189,12 +1229,13 @@ function abrirTendenciaBloco(bloco, ri, pctTabela){
   const vals = b[ri][1].slice(0, NT);
   const pct = pctTabela || rot.trim().startsWith("%");
   const meta = bloco === "robson_taxa" ? METAS_ROBSON[b[ri][0]] : null;
-  document.getElementById("mgTitulo").textContent = rot + " · evolução 2019-2025";
+  document.getElementById("mgTitulo").textContent =
+    (tituloCard ? tituloCard + " · " : "") + rot + " · evolução 2019-2025";
   document.getElementById("mgSub").textContent = mt.nome + " - " + mt.uf + " · Fonte: SINASC, dados sujeitos a revisão.";
   document.getElementById("modalGrafico").hidden = false;
   grafLinhas("mgConteudo", [{nome: rot, cor: "#279261", vals}], {pct, meta: meta ?? undefined, legenda: false});
 }
-function abrirTendenciaAssist(idCard, ri){
+function abrirTendenciaAssist(idCard, ri, tituloCard){
   const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
   const grupos = gruposAssist(mt);
   const l = grupos && grupos[idCard] && grupos[idCard][ri];
@@ -1204,7 +1245,8 @@ function abrirTendenciaAssist(idCard, ri){
   const opts = {legenda: false};
   if(l.fmt === "pct") opts.pct = true;
   if(l.fmt === "dias") opts.fmt = v => v.toLocaleString("pt-BR", {minimumFractionDigits: 1, maximumFractionDigits: 1});
-  document.getElementById("mgTitulo").textContent = l.rot + " · evolução 2019-2025";
+  document.getElementById("mgTitulo").textContent =
+    (tituloCard ? tituloCard + " · " : "") + l.rot + " · evolução 2019-2025";
   document.getElementById("mgSub").textContent = mt.nome + " - " + mt.uf + " · Fonte: " + fonte + ", dados sujeitos a revisão.";
   document.getElementById("modalGrafico").hidden = false;
   grafLinhas("mgConteudo", [{nome: l.rot, cor: "#279261", vals: l.valores.slice(0, NT)}], opts);
