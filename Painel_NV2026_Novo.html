@@ -536,16 +536,22 @@ footer a{color:var(--verde-lima)}
     <div class="sec-head">
       <p class="eyebrow">Comparador</p>
       <h2>Comparar unidades lado a lado</h2>
-      <p style="max-width:none">Dois modos: <b>entre unidades</b>, com duas a quatro maternidades lado a lado e a melhor posição destacada em cada indicador; ou <b>a mesma unidade entre anos</b>, marcando os anos desejados para ver a variação e a tendência de cada indicador.</p>
+      <p style="max-width:none">Dois modos: <b>entre unidades</b> — escolha primeiro o grupo (estratégicas, EBSERH ou QUALINEO) e compare de duas a quatro maternidades do grupo lado a lado, com a melhor posição destacada em cada indicador e a opção de incluir a <b>média do grupo</b> como referência; ou <b>a mesma unidade entre anos</b>, marcando os anos desejados para ver a variação e a tendência de cada indicador.</p>
     </div>
     <div class="seg" id="segModoComp" style="margin-bottom:1rem">
       <button data-modo="unidades" class="ativo">Entre unidades</button>
       <button data-modo="anos">Mesma unidade entre anos</button>
     </div>
     <div id="compModoUnidades">
+      <div class="seg" id="segGrupoComp" style="margin-bottom:1rem">
+        <button data-grupo="estrategica" class="ativo">Maternidades estratégicas</button>
+        <button data-grupo="ebserh">Unidades EBSERH</button>
+        <button data-grupo="qualineo">QUALINEO 2026/2027</button>
+      </div>
       <div class="comp-sel">
         <select id="selAddComp" style="min-width:300px"></select>
         <button class="chip" id="btnAddComp">+ adicionar</button>
+        <button class="chip" id="btnAddMedia" title="Inclui, como coluna de referência, a média agregada do grupo selecionado acima">+ média do grupo</button>
         <select id="selAnoComp" aria-label="Ano da comparação"></select>
         <div class="comp-chips" id="compChips"></div>
       </div>
@@ -32000,36 +32006,6 @@ function grafBarras(alvo, rotulos, valores, opts = {}){
   s += "</svg>";
   document.getElementById(alvo).innerHTML = s;
 }
-function grafBarrasDuplo(alvo, rotulos, series){
-  // series: [{nome, cor, vals}] — duas séries de barras lado a lado por rótulo
-  const W = 640, H = 225, mL = 10, mR = 10, mT = 40, mB = 28;
-  const todos = series.flatMap(sr => sr.vals).filter(v => v != null);
-  if(!todos.length){ document.getElementById(alvo).innerHTML = "<p class='suave'>Sem dados.</p>"; return; }
-  const max = Math.max(...todos, 1);
-  const n = rotulos.length, gw = (W - mL - mR) / n;
-  let s = `<svg class="graf" viewBox="0 0 ${W} ${H}">`;
-  let lx = mL;
-  series.forEach(sr => {
-    s += `<rect x="${lx}" y="6" width="12" height="12" rx="3" fill="${sr.cor}"/>`;
-    s += `<text x="${lx + 17}" y="16.5" font-size="12.5" font-weight="700" fill="#1D3229">${sr.nome}</text>`;
-    lx += 17 + sr.nome.length * 7.5 + 22;
-  });
-  rotulos.forEach((r, i) => {
-    series.forEach((sr, j) => {
-      const v = sr.vals[i];
-      if(v == null) return;
-      const h = (H - mT - mB) * v / max;
-      const bw = gw * 0.30;
-      const x = mL + i * gw + gw * 0.16 + j * (bw + gw * 0.07);
-      const y = H - mB - h;
-      s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${sr.cor}"/>`;
-      s += `<text x="${(x + bw/2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1D3229">${Math.round(v)}</text>`;
-    });
-    s += `<text x="${(mL + i*gw + gw/2).toFixed(1)}" y="${H - 9}" text-anchor="middle" font-size="12.5" fill="#4E6A5C">${r}</text>`;
-  });
-  s += "</svg>";
-  document.getElementById(alvo).innerHTML = s;
-}
 function grafLinhas(alvo, series, opts = {}){
   // series: [{nome, cor, vals:[…por ano…]}]
   const comRotulos = opts.rotulos !== false && series.length === 1;
@@ -32063,7 +32039,7 @@ function grafLinhas(alvo, series, opts = {}){
       d += (prev ? "L" : "M") + X(i).toFixed(1) + "," + Y(v).toFixed(1);
       prev = true;
     });
-    s += `<path d="${d}" fill="none" stroke="${sr.cor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+    s += `<path d="${d}" fill="none" stroke="${sr.cor}" stroke-width="3"${sr.dash ? ' stroke-dasharray="8 6"' : ""} stroke-linecap="round" stroke-linejoin="round"/>`;
     sr.vals.forEach((v, i) => {
       if(v == null) return;
       const _rot = opts.fmt ? opts.fmt(v) : (opts.pct ? fmtPct(v) : fmtInt(v));
@@ -32648,8 +32624,7 @@ function desenhaDossie(){
   <div class="dossie-cards">
     <div class="card full">${cardCnesHTML(mt)}</div>
     ${cardHabilitacoesHTML(mt) ? `<div class="card full">${cardHabilitacoesHTML(mt)}</div>` : ""}
-    <div class="card"><h3>Nascidos vivos ocorridos, ${ANOS[0]} a ${ANOS[NT-1]}</h3><div id="dNV"></div><p class="fonte">${FONTE_SINASC}</p></div>
-    <div class="card"><h3>Evolução comparada com o Brasil (${ANOS[0]} = 100)</h3><div id="dNVBrasil"></div><p class="fonte">${FONTE_SINASC} Índice com base 100 em ${ANOS[0]}: as barras mostram a trajetória da unidade e do país na mesma escala. Brasil = soma dos nascidos vivos das 27 UFs.</p></div>
+    <div class="card full"><h3>Nascidos vivos ocorridos, ${ANOS[0]} a ${ANOS[NT-1]}</h3><div id="dNV"></div><p class="fonte">${FONTE_SINASC}</p></div>
     <div class="full">
       <p class="eyebrow titulo-linha" style="margin:.4rem 0 .2rem">Abrangência territorial: da região à unidade</p>
       <div class="filtros-grid filtros-topo" style="margin-bottom:.9rem">
@@ -32683,14 +32658,6 @@ function desenhaDossie(){
 
   grafBarras("dNV", ANOS, ANOS.map((_, a) => mt.blocos.nv_territorio[0][1][a]));
 
-  // evolução comparada unidade × Brasil, indexada no primeiro ano
-  const _nvU = ANOS.map((_, a) => mt.blocos.nv_territorio[0][1][a]);
-  const _nvB = ANOS.map((_, a) => nvBrasilAno(a));
-  grafBarrasDuplo("dNVBrasil", ANOS, [
-    {nome:"Unidade", cor:"#279261", vals:_nvU.map(v => v != null && _nvU[0] ? 100*v/_nvU[0] : null)},
-    {nome:"Brasil",  cor:"#0A213D", vals:_nvB.map(v => v != null && _nvB[0] ? 100*v/_nvB[0] : null)}
-  ]);
-
   // bloco de abrangência territorial dentro do dossiê
   const rTer = () => { document.getElementById("dTerr").innerHTML = montaTerritorioHTML(mt, dosRec, dosPersp); };
   const sRD = document.getElementById("selRecorteDos");
@@ -32706,14 +32673,40 @@ function desenhaDossie(){
    COMPARADOR
    ============================================================ */
 const CORES_COMP = ["#279261","#0A213D","#D68910","#C0392B"];
+const COR_MEDIA = "#5E716A";
+const MEDIA_ROT = {estrategica:"Estratégicas", ebserh:"EBSERH", qualineo:"QUALINEO"};
 let anoComp = NT - 1;
+let grupoComp = "estrategica";   // grupo escolhido no filtro do comparador — só se compara dentro dele
+/* média do grupo: pseudo-coluna "media:<grupo>" — a unidade é comparada com o próprio grupo */
+function unidadesDoGrupo(g){ return MAT.filter(m => (m.conjuntos || ["estrategica"]).includes(g)); }
+function entradaComp(c){
+  if(String(c).startsWith("media:")){
+    const g = String(c).slice(6), lst = unidadesDoGrupo(g);
+    return {media:true, cnes:c, grupo:g, lista:lst, nome:"Média · " + (MEDIA_ROT[g] || g), sub:lst.length + " unidades · agregado"};
+  }
+  return MAT.find(m => m.cnes === c);
+}
+/* valor de uma coluna do comparador: unidade real ou média agregada do grupo */
+function valorEntrada(e, ind, a){
+  if(!e.media) return valorUnidade(e, ind, a);
+  if(ind.tipo === "num"){   // volume: média por unidade com dado no ano
+    const com = e.lista.map(m => ind.num(m, a)).filter(v => v != null);
+    return com.length ? com.reduce((s, v) => s + v, 0) / com.length : null;
+  }
+  return agrega(e.lista, ind, a);   // taxa agregada: soma num ÷ soma den (Robson ponderado pelo nº de partos)
+}
+function coresComp(lst){
+  let k = 0;
+  return lst.map(e => e && e.media ? COR_MEDIA : CORES_COMP[k++ % CORES_COMP.length]);
+}
 function desenhaChipsComp(){
   const el = document.getElementById("compChips");
-  el.innerHTML = estado.comparar.map((c, i) => {
-    const m = MAT.find(x => x.cnes === c);
-    return `<span class="chip" style="border-color:${CORES_COMP[i]}; color:${CORES_COMP[i]}">
+  const lst = estado.comparar.map(entradaComp);
+  const cores = coresComp(lst);
+  el.innerHTML = lst.map((m, i) => {
+    return `<span class="chip" style="border-color:${cores[i]}; color:${cores[i]}">
       ${esc(m.nome.length > 34 ? m.nome.slice(0,33) + "…" : m.nome)}
-      <button aria-label="remover" onclick="removeComp('${c}')">✕</button></span>`;
+      <button aria-label="remover" onclick="removeComp('${m.cnes}')">✕</button></span>`;
   }).join("");
 }
 window.removeComp = c => { estado.comparar = estado.comparar.filter(x => x !== c); desenhaChipsComp(); desenhaComparador(); };
@@ -32724,24 +32717,34 @@ function addComp(cnes){
   desenhaChipsComp(); desenhaComparador();
   document.getElementById("secComparar").scrollIntoView({behavior:"smooth"});
 }
+function addMediaGrupo(){
+  const id = "media:" + grupoComp;
+  if(estado.comparar.includes(id)) return;
+  if(estado.comparar.length >= 4){ alert("Máximo de 4 colunas no comparador."); return; }
+  estado.comparar.push(id);
+  desenhaChipsComp(); desenhaComparador();
+  document.getElementById("secComparar").scrollIntoView({behavior:"smooth"});
+}
 function desenhaComparador(){
   const el = document.getElementById("compConteudo");
-  const lst = estado.comparar.map(c => MAT.find(m => m.cnes === c));
+  const lst = estado.comparar.map(entradaComp).filter(Boolean);
   if(lst.length < 2){
-    el.innerHTML = `<div class="card"><p class="suave">Adicione pelo menos duas maternidades para comparar, usando o seletor acima.</p></div>`;
+    el.innerHTML = `<div class="card"><p class="suave">Adicione pelo menos duas maternidades do grupo escolhido acima — ou uma maternidade e a média do grupo, com o botão “+ média do grupo”.</p></div>`;
     return;
   }
+  const cores = coresComp(lst);
+  const temMedia = lst.some(e => e.media);
   const a = anoComp;
   const rotAno = a >= NT ? "Acumulado 2019-2025" : ANOS[a];
   const linhas = INDS.map(ind => {
-    const vals = lst.map(m => valorUnidade(m, ind, a));
-    const ok = vals.filter(v => v != null);
+    const vals = lst.map(m => valorEntrada(m, ind, a));
+    const ok = vals.filter((v, j) => v != null && !lst[j].media);
     let melhor = null;
     if(ok.length && ind.sentido !== "neutro"){
       melhor = ind.sentido === "menor" ? Math.min(...ok) : Math.max(...ok);
     }
-    const tds = vals.map(v => {
-      const destaque = melhor != null && v === melhor ? "melhor" : "";
+    const tds = vals.map((v, j) => {
+      const destaque = melhor != null && !lst[j].media && v === melhor ? "melhor" : "";
       return `<td class="mono ${destaque}">${ind.tipo === "num" ? fmtInt(v) : fmtPct(v)}</td>`;
     }).join("");
     return `<tr><td>${esc(ind.rot)}${ind.meta != null ? ` <span class="suave">(meta ${ind.sentido === "menor" ? "≤" : "≥"}${ind.meta}%)</span>` : ""}</td>${tds}</tr>`;
@@ -32750,9 +32753,9 @@ function desenhaComparador(){
   <div class="card comp-grid">
     <h3>Indicadores · ${rotAno} <span class="chip">melhor posição destacada</span></h3>
     <div class="tab-wrap"><table class="comp">
-      <thead><tr><th>Indicador</th>${lst.map((m, i) => `<th style="color:${CORES_COMP[i]}">${esc(m.nome.length > 26 ? m.nome.slice(0,25) + "…" : m.nome)}<br><span class="suave" style="font-weight:400">${m.uf}</span></th>`).join("")}</tr></thead>
+      <thead><tr><th>Indicador</th>${lst.map((m, i) => `<th style="color:${cores[i]}">${esc(m.nome.length > 26 ? m.nome.slice(0,25) + "…" : m.nome)}<br><span class="suave" style="font-weight:400">${m.media ? m.sub : m.uf}</span></th>`).join("")}</tr></thead>
       <tbody>${linhas}</tbody></table></div>
-    <p class="fonte">“Melhor” considera o sentido de cada indicador (menor cesárea é melhor; mais pré-natal é melhor). Indicadores de perfil (peso, prematuridade) não têm destaque.</p>
+    <p class="fonte">“Melhor” considera o sentido de cada indicador (menor cesárea é melhor; mais pré-natal é melhor). Indicadores de perfil (peso, prematuridade) não têm destaque.${temMedia ? " A média do grupo é a taxa agregada das unidades do grupo — soma dos numeradores ÷ soma dos denominadores (Robson ponderado pelo nº de partos; no volume de nascidos vivos, média por unidade) — e não participa do destaque. Detalhes na Metodologia." : ""}</p>
   </div>
   <div class="grid-2" style="margin-top:1.1rem">
     <div class="card"><h3 style="display:flex; justify-content:space-between; align-items:center; gap:.6rem">Série comparada <select id="selIndComp"></select></h3><div id="grafComp"></div></div>
@@ -32763,11 +32766,11 @@ function desenhaComparador(){
   sel.value = "ces";
   sel.addEventListener("change", desenhaGrafComp);
   desenhaGrafComp();
-  grafRanking("grafCompNV", lst.map((m, i) => ({nome:m.nome, v:valorUnidade(m, indPorId("nv"), a), cor:CORES_COMP[i]})), {});
+  grafRanking("grafCompNV", lst.map((m, i) => ({nome:m.nome, v:valorEntrada(m, indPorId("nv"), a), cor:cores[i]})), {});
   function desenhaGrafComp(){
     const ind = indPorId(sel.value);
     grafLinhas("grafComp",
-      lst.map((m, i) => ({nome:m.nome, cor:CORES_COMP[i], vals:ANOS.map((_, k) => valorUnidade(m, ind, k))})),
+      lst.map((m, i) => ({nome:m.nome, cor:cores[i], vals:ANOS.map((_, k) => valorEntrada(m, ind, k)), dash:m.media})),
       {pct:true, meta:ind.meta, legenda:true});
   }
 }
@@ -32882,10 +32885,10 @@ const FICHAS_EXTRAS = [
    n:"Nascidos vivos ocorridos na unidade em 2025.",
    d:"Nascidos vivos totais da UF (SINASC) ou do Brasil — este obtido pela soma dos totais das 27 UFs.",
    fonte:"Ministério da Saúde - SINASC, 2025."},
-  {rot:"Evolução comparada com o Brasil, 2019 = 100 (dossiê)",
-   desc:"Trajetória do volume de nascimentos da unidade e do país na mesma escala: cada série é dividida pelo próprio valor de 2019 e multiplicada por 100. Valores acima de 100 indicam crescimento em relação a 2019; abaixo, queda.",
-   n:"Nascidos vivos do ano (da unidade, ou do Brasil pela soma das 27 UFs).",
-   d:"Nascidos vivos de 2019 da mesma série (unidade ou Brasil).",
+  {rot:"Média do grupo (comparador)",
+   desc:"Coluna de referência do comparador de unidades: a maternidade é comparada com a média do seu próprio grupo — maternidades estratégicas, unidades EBSERH ou QUALINEO 2026/2027. Nos indicadores percentuais a média é a taxa agregada do grupo (soma dos numeradores dividida pela soma dos denominadores de todas as unidades do grupo, com as mesmas exclusões de ignorados de cada indicador), a mesma regra de agregação usada nos mapas e no panorama; nos grupos de Robson, a taxa agregada é ponderada pelo número de partos de cada unidade no grupo. No volume de nascidos vivos, mostra-se a média por unidade (total do grupo dividido pelo número de unidades com dado no ano). Unidades que pertencem a mais de um grupo contam na média de todos os grupos a que pertencem. A média do grupo não participa do destaque de melhor posição.",
+   n:"Soma dos numeradores do indicador nas unidades do grupo com dado no ano.",
+   d:"Soma dos denominadores correspondentes nas mesmas unidades.",
    fonte:"Ministério da Saúde - SINASC, 2019 a 2025."}
 ];
 
@@ -32970,6 +32973,18 @@ function opcaoUnidades(sel, conjunto){
     `<optgroup label="${UF_NOME[uf]}">` +
     porUF[uf].sort((a,b) => a.nome.localeCompare(b.nome)).map(m => `<option value="${m.cnes}">${esc(m.nome)}</option>`).join("") +
     `</optgroup>`).join("");
+}
+/* seletor com um optgroup por grupo (comparador); a UF entra no rótulo de cada opção */
+const GRUPO_ROT_PLURAL = {estrategica:"Maternidades estratégicas", ebserh:"Unidades EBSERH", qualineo:"QUALINEO 2026/2027"};
+function opcaoUnidadesPorGrupo(sel){
+  sel.innerHTML = ORDEM_CONJ.map(g => {
+    const lst = MAT.filter(m => conjuntoPrincipal(m) === g)
+      .sort((a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome));
+    if(!lst.length) return "";
+    return `<optgroup label="${GRUPO_ROT_PLURAL[g]} (${lst.length})">` +
+      lst.map(m => `<option value="${m.cnes}">${m.uf} · ${esc(m.nome)}</option>`).join("") +
+      `</optgroup>`;
+  }).join("");
 }
 function sincronizaSelecao(){
   desenhaPainelSelecao();
@@ -33159,8 +33174,21 @@ function inicia(){
 
   // comparador
   const sC = document.getElementById("selAddComp");
-  opcaoUnidades(sC);
+  opcaoUnidades(sC, grupoComp);
+  document.querySelectorAll("#segGrupoComp button").forEach(b => {
+    b.textContent += ` (${MAT.filter(m => conjuntoPrincipal(m) === b.dataset.grupo).length})`;
+    b.addEventListener("click", () => {
+      if(b.dataset.grupo === grupoComp) return;
+      document.querySelectorAll("#segGrupoComp button").forEach(x => x.classList.remove("ativo"));
+      b.classList.add("ativo");
+      grupoComp = b.dataset.grupo;
+      opcaoUnidades(sC, grupoComp);
+      estado.comparar = [];          // trocar de grupo zera a comparação: só se compara dentro do grupo
+      desenhaChipsComp(); desenhaComparador();
+    });
+  });
   document.getElementById("btnAddComp").addEventListener("click", () => addComp(sC.value));
+  document.getElementById("btnAddMedia").addEventListener("click", addMediaGrupo);
   const sAC = document.getElementById("selAnoComp");
   sAC.innerHTML = ANOS.map((a, i) => `<option value="${i}" ${i === NT-1 ? "selected" : ""}>${a}</option>`).join("") + `<option value="${NT}">Acumulado 2019-2025</option>`;
   sAC.addEventListener("change", () => { anoComp = +sAC.value; desenhaComparador(); });
@@ -33177,7 +33205,7 @@ function inicia(){
     });
   });
   const sEvo = document.getElementById("selUnidadeEvo");
-  opcaoUnidades(sEvo);
+  opcaoUnidadesPorGrupo(sEvo);
   sEvo.value = evoCnes;
   sEvo.addEventListener("change", () => { evoCnes = sEvo.value; desenhaEvolucao(); });
   const anosBox = document.getElementById("anosEvo");

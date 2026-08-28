@@ -535,16 +535,22 @@ footer a{color:var(--verde-lima)}
     <div class="sec-head">
       <p class="eyebrow">Comparador</p>
       <h2>Comparar unidades lado a lado</h2>
-      <p style="max-width:none">Dois modos: <b>entre unidades</b>, com duas a quatro maternidades lado a lado e a melhor posição destacada em cada indicador; ou <b>a mesma unidade entre anos</b>, marcando os anos desejados para ver a variação e a tendência de cada indicador.</p>
+      <p style="max-width:none">Dois modos: <b>entre unidades</b> — escolha primeiro o grupo (estratégicas, EBSERH ou QUALINEO) e compare de duas a quatro maternidades do grupo lado a lado, com a melhor posição destacada em cada indicador e a opção de incluir a <b>média do grupo</b> como referência; ou <b>a mesma unidade entre anos</b>, marcando os anos desejados para ver a variação e a tendência de cada indicador.</p>
     </div>
     <div class="seg" id="segModoComp" style="margin-bottom:1rem">
       <button data-modo="unidades" class="ativo">Entre unidades</button>
       <button data-modo="anos">Mesma unidade entre anos</button>
     </div>
     <div id="compModoUnidades">
+      <div class="seg" id="segGrupoComp" style="margin-bottom:1rem">
+        <button data-grupo="estrategica" class="ativo">Maternidades estratégicas</button>
+        <button data-grupo="ebserh">Unidades EBSERH</button>
+        <button data-grupo="qualineo">QUALINEO 2026/2027</button>
+      </div>
       <div class="comp-sel">
         <select id="selAddComp" style="min-width:300px"></select>
         <button class="chip" id="btnAddComp">+ adicionar</button>
+        <button class="chip" id="btnAddMedia" title="Inclui, como coluna de referência, a média agregada do grupo selecionado acima">+ média do grupo</button>
         <select id="selAnoComp" aria-label="Ano da comparação"></select>
         <div class="comp-chips" id="compChips"></div>
       </div>
