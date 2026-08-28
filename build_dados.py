@@ -85,6 +85,7 @@ ADICIONAIS = [
     ("qualineo", "INDICADORES MATERNIDADES QUALINEO NOVAS_2019_2025.xlsx", "_config_qualineo"),
     ("qualineo", "INDICADORES MATERNIDADES DE REFERENCIA_2019_2025 atualizada 22_7.xlsx",
      "_config_qualineo2"),
+    ("qualineo", "INDICADORES MATERNIDADES QUALINEO NOVE_2019_2025.xlsx", "_config_qualineo_nove"),
 ]
 CFG_DIR = os.path.join(PROJ, "Gerador_NV2026", "adicionar_unidades")
 UF_NOME_PT = {"RO":"Rondônia","AC":"Acre","AM":"Amazonas","RR":"Roraima","PA":"Pará","AP":"Amapá",
