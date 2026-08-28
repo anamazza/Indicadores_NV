@@ -744,7 +744,7 @@ function grafLinhas(alvo, series, opts = {}){
   for(let k = 0; k <= 4; k++){
     const v = min + (max - min) * k / 4, y = Y(v);
     s += `<line x1="${mL}" y1="${y.toFixed(1)}" x2="${W-mR}" y2="${y.toFixed(1)}" stroke="#D8E8DC" stroke-width="1"/>`;
-    s += `<text x="${mL-6}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="11.5" fill="#4E6A5C">${opts.pct ? Math.round(v) + "%" : fmtInt(v)}</text>`;
+    s += `<text x="${mL-6}" y="${(y+4).toFixed(1)}" text-anchor="end" font-size="11.5" fill="#4E6A5C">${opts.fmt ? opts.fmt(v) : (opts.pct ? Math.round(v) + "%" : fmtInt(v))}</text>`;
   }
   ANOS.forEach((ano, i) => {
     s += `<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="12" fill="#4E6A5C">${ano}</text>`;
@@ -764,9 +764,10 @@ function grafLinhas(alvo, series, opts = {}){
     s += `<path d="${d}" fill="none" stroke="${sr.cor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
     sr.vals.forEach((v, i) => {
       if(v == null) return;
-      s += `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4" fill="${sr.cor}"><title>${esc(sr.nome)} · ${ANOS[i]} · ${opts.pct ? fmtPct(v) : fmtInt(v)}</title></circle>`;
+      const _rot = opts.fmt ? opts.fmt(v) : (opts.pct ? fmtPct(v) : fmtInt(v));
+      s += `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4" fill="${sr.cor}"><title>${esc(sr.nome)} · ${ANOS[i]} · ${_rot}</title></circle>`;
       if(comRotulos){
-        s += `<text x="${X(i).toFixed(1)}" y="${(Y(v) - 11).toFixed(1)}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1D3229">${opts.pct ? fmtPct(v) : fmtInt(v)}</text>`;
+        s += `<text x="${X(i).toFixed(1)}" y="${(Y(v) - 11).toFixed(1)}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1D3229">${_rot}</text>`;
       }
     });
   });
@@ -986,7 +987,7 @@ function cardTrimestreHTML(mt){
 function tabelaBloco(mt, bloco, opts = {}){
   const b = mt.blocos[bloco];
   if(!b) return "<p class='suave'>Sem dados.</p>";
-  const rows = b.map(r => {
+  const rows = b.map((r, ri) => {
     const rot = opts.rotulos ? (opts.rotulos[r[0]] ?? r[0]) : r[0];
     const tds = r[1].map((v, i) => {
       let cls = "";
@@ -996,7 +997,7 @@ function tabelaBloco(mt, bloco, opts = {}){
       return `<td class="mono ${cls}">${opts.pct ? (v == null ? "—" : fmtPct(v)) : fmtInt(v)}</td>`;
     }).join("");
     const ehTotal = /total/i.test(r[0]);
-    return `<tr class="${ehTotal ? "total" : ""}"><td>${esc(rot)}</td>${tds}</tr>`;
+    return `<tr class="${ehTotal ? "total" : ""}"><td class="rot-click" data-row="${ri}" title="Ver a evolução deste indicador, 2019 a 2025">${esc(rot)}</td>${tds}</tr>`;
   }).join("");
   return `<div class="tab-wrap"><table class="dados" data-bloco="${bloco}"${opts.pct ? ' data-pct="1"' : ""}>
     <thead><tr><th></th>${thsAno()}</tr></thead>
@@ -1053,6 +1054,16 @@ function abrirTendencia(indId){
 document.addEventListener("click", e => {
   const tdv = e.target.closest("td.var-click");
   if(tdv){ abrirTendencia(tdv.dataset.ind); return; }
+  const tdr = e.target.closest("td.rot-click");
+  if(tdr){
+    if(tdr.dataset.acard){
+      abrirTendenciaAssist(tdr.dataset.acard, +tdr.dataset.row);
+    } else {
+      const tb = tdr.closest("table[data-bloco]");
+      if(tb) abrirTendenciaBloco(tb.dataset.bloco, +tdr.dataset.row, tb.dataset.pct === "1");
+    }
+    return;
+  }
   const th = e.target.closest("th.th-ano");
   if(th){
     const ta = th.closest("table[data-assist]");
@@ -1135,8 +1146,8 @@ function gruposAssist(mt){
   return grupos;
 }
 function tabelaAssist(linhas, idCard){
-  const rows = linhas.map(l =>
-    `<tr><td>${esc(l.rot)}</td>${l.valores.map(v => `<td class="mono">${fmtAssist(v, l.fmt)}</td>`).join("")}</tr>`
+  const rows = linhas.map((l, ri) =>
+    `<tr><td${idCard ? ` class="rot-click" data-acard="${idCard}" data-row="${ri}" title="Ver a evolução deste indicador, 2019 a 2025"` : ""}>${esc(l.rot)}</td>${l.valores.map(v => `<td class="mono">${fmtAssist(v, l.fmt)}</td>`).join("")}</tr>`
   ).join("");
   // ano clicavel (grafico do ano) so quando todas as linhas tem o mesmo formato —
   // nos cards mistos (nº + % + dias) a barra compararia grandezas diferentes
@@ -1161,6 +1172,44 @@ function assistenciaisHTML(mt){
     html += `<div class="card"><h3>Outros indicadores</h3>${tabelaAssist(grupos.outros, null)}<p class="fonte">${FONTE_SIH}</p></div>`;
   return html;
 }
+/* clique no INDICADOR (rótulo da linha): evolução 2019-2025 (pedido da Tatiana, 28/08) */
+const METAS_ROBSON = {"Grupo 1": 10, "Grupo 2": 35, "Grupo 3": 3, "Grupo 4": 15};
+function abrirTendenciaBloco(bloco, ri, pctTabela){
+  const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
+  const b = mt.blocos[bloco];
+  if(!b || !b[ri]) return;
+  const ehTerr = ["residentes_nv", "residentes_p1500", "nv_territorio", "p1500_territorio"].includes(bloco);
+  const t = mt.territorio;
+  const rotTerr = [mt.nome, "Município - " + t.municipio, "Região de Saúde - " + t.regiao_saude, t.macro, "UF - " + t.uf];
+  let rot = String(b[ri][0]);
+  if(ehTerr){
+    const base = rotTerr[ri % 5] || rot;
+    rot = (ri >= 5 ? "% " : "") + base;
+  }
+  const vals = b[ri][1].slice(0, NT);
+  const pct = pctTabela || rot.trim().startsWith("%");
+  const meta = bloco === "robson_taxa" ? METAS_ROBSON[b[ri][0]] : null;
+  document.getElementById("mgTitulo").textContent = rot + " · evolução 2019-2025";
+  document.getElementById("mgSub").textContent = mt.nome + " - " + mt.uf + " · Fonte: SINASC, dados sujeitos a revisão.";
+  document.getElementById("modalGrafico").hidden = false;
+  grafLinhas("mgConteudo", [{nome: rot, cor: "#279261", vals}], {pct, meta: meta ?? undefined, legenda: false});
+}
+function abrirTendenciaAssist(idCard, ri){
+  const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
+  const grupos = gruposAssist(mt);
+  const l = grupos && grupos[idCard] && grupos[idCard][ri];
+  if(!l) return;
+  const card = ASSIST_CARDS.find(c => c.id === idCard);
+  const fonte = card && card.fonte === "SIH" ? "SIH/SUS" : "SINASC";
+  const opts = {legenda: false};
+  if(l.fmt === "pct") opts.pct = true;
+  if(l.fmt === "dias") opts.fmt = v => v.toLocaleString("pt-BR", {minimumFractionDigits: 1, maximumFractionDigits: 1});
+  document.getElementById("mgTitulo").textContent = l.rot + " · evolução 2019-2025";
+  document.getElementById("mgSub").textContent = mt.nome + " - " + mt.uf + " · Fonte: " + fonte + ", dados sujeitos a revisão.";
+  document.getElementById("modalGrafico").hidden = false;
+  grafLinhas("mgConteudo", [{nome: l.rot, cor: "#279261", vals: l.valores.slice(0, NT)}], opts);
+}
+
 function abrirGraficoAnoAssist(idCard, a, tituloCard){
   const mt = MAT.find(m => m.cnes === estado.cnes) || MAT[0];
   const grupos = gruposAssist(mt);
