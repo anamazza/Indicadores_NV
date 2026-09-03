@@ -1092,6 +1092,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => { if(e.key === "Escape") fecharModalGrafico(); });
 const FONTE_SINASC = "Fonte: Ministério da Saúde - SINASC · dados sujeitos a revisão.";
 const FONTE_SIH = "Fonte: Ministério da Saúde - SIH/SUS · dados sujeitos a revisão.";
+const FONTE_MISTA = "Fonte: Ministério da Saúde - SINASC e SIH/SUS · dados sujeitos a revisão.";
 
 /* ============================================================
    INDICADORES ASSISTENCIAIS (planilhas da coordenação, 26/08/2026)
@@ -1102,40 +1103,61 @@ const ASSIST_CARDS = [
   {id:"raca",      h:"Raça/cor da mãe (%)",                       fonte:"SINASC"},
   {id:"escola",    h:"Escolaridade da mãe (anos de estudo) (%)",  fonte:"SINASC"},
   {id:"conjugal",  h:"Situação conjugal da mãe (%)",              fonte:"SINASC"},
+  {id:"partos_ant",h:"Partos anteriores da mãe (%)",              fonte:"SINASC"},
+  {id:"ces_ant",   h:"Cesarianas anteriores da mãe (%)",          fonte:"SINASC"},
+  {id:"tipo_gest", h:"Tipo de gestação (%)",                      fonte:"SINASC"},
   {id:"motivo",    h:"Internações obstétricas: motivo (%)",       fonte:"SIH"},
-  {id:"saida_obs", h:"Internações obstétricas: tipo de saída (%)",fonte:"SIH"},
   {id:"volume",    h:"Internações obstétricas: volume e procedimentos", fonte:"SIH"},
   {id:"acomp",     h:"Internações com presença de acompanhante (%)", fonte:"SIH"},
   {id:"ocup",      h:"Ocupação e permanência (obstetrícia)",      fonte:"SIH"},
-  {id:"saida_neo", h:"Internações neonatais: tipo de saída (%)",  fonte:"SIH"},
+  {id:"assistparto",h:"Assistência ao parto",                     fonte:"MISTA"},
   {id:"neo",       h:"Internações neonatais e UTI",               fonte:"SIH"},
+  {id:"mmg",       h:"Morbidade materna grave (MMG)",             fonte:"SIH"},
+  {id:"mmg_causa", h:"MMG por grupo de causa (%)",                fonte:"SIH"},
   {id:"morb",      h:"Morbidade neonatal",                        fonte:"SINASC"},
+  {id:"neo_causas",h:"Internações neonatais por grupo de causa (%)", fonte:"SIH"},
 ];
 const ASSIST_MAP = [
   [/por idade da mãe - (.+)$/,                       "idade",     null],
   [/por raça\/cor da mãe - (.+)$/,                   "raca",      null],
   [/por escolaridade da mãe - (.+)$/,                "escola",    null],
   [/por situação conjugal da mãe - (.+)$/,           "conjugal",  null],
+  [/por número de partos anteriores da mãe - (.+)$/, "partos_ant", null],
+  [/por número de cesarianas anteriores da mãe - (.+)$/, "ces_ant", null],
+  [/por tipo de gestação - (.+)$/,                   "tipo_gest", null],
   [/obstétricas por motivos de internação - (.+)$/,  "motivo",    null],
   [/obstétricas por tipo de saída - (.+)$/,          "saida_obs", null],
   [/^Número de internações obstétricas$/,            "volume",    "Internações obstétricas (nº)"],
   [/aborto legal/,                                   "volume",    "Internações para aborto legal (nº)"],
+  [/Centro de Parto Normal/,                         "volume",    "Partos em Centro de Parto Normal (nº)"],
   [/AMIU/,                                           "volume",    "AMIU entre esvaziamentos uterinos (%)"],
   [/parto vaginal com presença de acompanhante/,     "acomp",     "Parto vaginal"],
   [/cesariana com presença de acompanhante/,         "acomp",     "Cesariana"],
   [/resultaram em parto com presença de acompanhante/,"acomp",    "Todas que resultaram em parto"],
+  [/aborto com presença de acompanhante/,            "acomp",     "Aborto"],
   [/^Taxa de Ocupação - Obstétricas$/,               "ocup",      "Taxa de ocupação (%)"],
   [/^Tempo médio de permanência - geral$/,           "ocup",      "Permanência média: geral (dias)"],
   [/^Tempo médio de permanência - parto vaginal$/,   "ocup",      "Permanência média: parto vaginal (dias)"],
   [/^Tempo médio de permanência - cesariana$/,       "ocup",      "Permanência média: cesariana (dias)"],
   [/^Tempo médio de permanência - aborto$/,          "ocup",      "Permanência média: aborto (dias)"],
   [/^Tempo médio de permanência - intercorrências/,  "ocup",      "Permanência média: intercorrências (dias)"],
+  [/número adequado de consultas para a idade gestacional/, "assistparto", "Pré-natal adequado para a idade gestacional (%)"],
+  [/partos vaginais pós-cesariana/,                  "assistparto", "Parto vaginal após cesariana anterior (%)"],
+  [/analgesia em internações para partos vaginais/,  "assistparto", "Analgesia no parto vaginal (%)"],
+  [/trabalho de parto induzido/,                     "assistparto", "Trabalho de parto induzido (%)"],
   [/neonatais por tipo de saída - (.+)$/,            "saida_neo", null],
   [/^Número de internações neonatais$/,              "neo",       "Internações neonatais (nº)"],
   [/internações neonatais em UTI neonatal/,          "neo",       "Em UTI neonatal (%)"],
   [/^Taxa de Ocupação - UTI neonatal$/,              "neo",       "Taxa de ocupação da UTI (%)"],
   [/^Tempo médio de permanência - UTI neonatal$/,    "neo",       "Permanência média na UTI (dias)"],
+  [/morbidade materna grave por grupo de causa - (.+)$/, "mmg_causa", null],
+  [/^Porcentagem de casos de morbidade materna grave$/, "mmg",    "Casos de MMG entre as internações obstétricas (%)"],
+  [/morbidade materna grave com internação em UTI/,  "mmg",       "Com internação em UTI (%)"],
+  [/morbidade materna grave com tempo de permanência prolongado/, "mmg", "Com permanência acima de 7 dias pós-parto (%)"],
+  [/morbidade materna grave com transfusão sanguínea/, "mmg",     "Com transfusão sanguínea (%)"],
+  [/morbidade materna grave com realização de histerectomia/, "mmg", "Com histerectomia (%)"],
   [/condições potencialmente ameaçadoras/,           "morb",      "NV com condições potencialmente ameaçadoras à vida (%)"],
+  [/neonatais por grupos de causas - (.+)$/,         "neo_causas", null],
 ];
 function fmtAssist(v, fmt){
   if(v == null) return "—";
@@ -1170,12 +1192,12 @@ function assistenciaisHTML(mt){
   const sep = `<div class="full"><p class="eyebrow titulo-linha" style="margin:1rem 0 .2rem">Perfil das mães e assistência hospitalar (SINASC · SIH)</p></div>`;
   const grupos = gruposAssist(mt);
   if(!grupos){
-    return sep + `<div class="card full"><p class="suave">Indicadores assistenciais ainda não disponíveis para esta unidade — extração em andamento.</p></div>`;
+    return sep + `<div class="card full"><p class="suave">Indicadores assistenciais ainda não disponíveis para esta unidade nas planilhas da coordenação.</p></div>`;
   }
   let html = sep;
   ASSIST_CARDS.forEach(c => {
     if(!grupos[c.id]) return;
-    const fonte = c.fonte === "SIH" ? FONTE_SIH : FONTE_SINASC;
+    const fonte = c.fonte === "SIH" ? FONTE_SIH : c.fonte === "MISTA" ? FONTE_MISTA : FONTE_SINASC;
     html += `<div class="card"><h3>${esc(c.h)}</h3>${tabelaAssist(grupos[c.id], c.id)}<p class="fonte">${fonte}</p></div>`;
   });
   if(grupos.outros)
@@ -1211,7 +1233,8 @@ function abrirTendenciaAssist(idCard, ri, tituloCard){
   const l = grupos && grupos[idCard] && grupos[idCard][ri];
   if(!l) return;
   const card = ASSIST_CARDS.find(c => c.id === idCard);
-  const fonte = card && card.fonte === "SIH" ? "SIH/SUS" : "SINASC";
+  const fonte = card && card.fonte === "SIH" ? "SIH/SUS"
+              : card && card.fonte === "MISTA" ? "SINASC e SIH/SUS" : "SINASC";
   const opts = {legenda: false};
   if(l.fmt === "pct") opts.pct = true;
   if(l.fmt === "dias") opts.fmt = v => v.toLocaleString("pt-BR", {minimumFractionDigits: 1, maximumFractionDigits: 1});

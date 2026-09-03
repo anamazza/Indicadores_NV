@@ -19,10 +19,14 @@ import re
 
 from openpyxl import load_workbook
 
+# 31/08/2026: planilhas NOVAS da coordenação (114 blocos, 86 linhas cada:
+# perfil obstétrico, PN adequada, assistência ao parto, MMG e causas neonatais
+# a mais; linhas de tipo de saída removidas por decisão da Tatiana). Reparadas
+# com Indicadores_Assistenciais/repara_planilha.py (mesmo defeito de 26/08).
 ARQUIVOS = [
-    ("APOIADAS", "Indicadores_APOIADAS_reparada.xlsx"),
-    ("EBSERH", "Indicadores_EBSERH_reparada.xlsx"),
-    ("QUALINEO", "Indicadores_QUALINEO_reparada.xlsx"),
+    ("APOIADAS", "novas_2026-08-31/Indicadores_APOIADAS_reparada.xlsx"),
+    ("EBSERH", "novas_2026-08-31/Indicadores_EBSERH_reparada.xlsx"),
+    ("QUALINEO", "novas_2026-08-31/Indicadores_QUALINEO_reparada.xlsx"),
 ]
 ANOS = list(range(2019, 2026))
 
