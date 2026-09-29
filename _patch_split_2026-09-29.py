@@ -83,7 +83,7 @@ const ASSIST_CARDS = [
     ('''  if(grupos.outros)
     html += `<div class="card"><h3>Outros indicadores</h3>${tabelaAssist(grupos.outros, null)}<p class="fonte">${FONTE_SIH}</p></div>`;
   return html;''',
-     '''  html += `<div class="card full"><p class="suave" style="font-size:.9rem">Os indicadores de internação obstétrica e neonatal desta unidade (SIH/SUS: motivos, acompanhante, AMIU, Centro de Parto Normal, morbidade materna grave, ocupação e permanência, internações neonatais e UTI neonatal) estão no <a href="https://anamazza.github.io/Indicadores_internacao-2026/" target="_blank" rel="noopener">Painel de Internação 2026</a>.</p></div>`;
+     '''  html += `<div class="card full"><p class="suave" style="font-size:.9rem">Os indicadores de internação obstétrica e neonatal desta unidade (SIH/SUS: motivos, acompanhante, AMIU, Centro de Parto Normal, morbidade materna grave, ocupação e permanência, internações neonatais e UTI neonatal) estão no <a href="https://anamazza.github.io/Indicadores_NV/internacao/" target="_blank" rel="noopener">Painel de Internação 2026</a>.</p></div>`;
   return html;'''),
 ], "Painel de Internação 2026 (mesma família)")
 
@@ -94,7 +94,7 @@ patch("painel_base.html", [
      '    <div class="hero-links" aria-label="Painéis da coordenação">\n'
      '      <span class="rot">Painéis</span>\n'
      '      <a class="atual" aria-current="page">Nascimentos</a>\n'
-     '      <a href="https://anamazza.github.io/Indicadores_internacao-2026/">Internação</a>\n'
+     '      <a href="https://anamazza.github.io/Indicadores_NV/internacao/">Internação</a>\n'
      '      <a href="https://anamazza.github.io/Indicadores_mortalidade-2026/">Mortalidade</a>\n'
      '    </div>\n'),
     ('/* faixa de destaques abaixo do cabeçalho */',
