@@ -89,11 +89,6 @@ ADICIONAIS = [
     # Iauarete veio na planilha APOIADAS de indicadores assistenciais (28/08/2026);
     # entra no conjunto das estrategicas/apoiadas para a coordenacao avaliar
     ("estrategica", "INDICADORES MATERNIDADE IAUARETE_2019_2025.xlsx", "_config_iauarete"),
-    # 23/09/2026: Carmosina Coutinho/MA, Santa Casa de Sobral/CE e Santa Casa de Franca/SP,
-    # pedidas pela coordenacao (Brenda) para decks + painel; nao constam da lista oficial
-    # por grupo de 09/09, por isso entram como o Iauarete (estrategicas/apoiadas)
-    ("estrategica", "INDICADORES MATERNIDADES ADICIONAIS MA CE SP_2019_2025.xlsx",
-     "_config_adicionais_ma_ce_sp"),
 ]
 
 # coordenadas de unidades fora do acervo AIH (sem producao de parto na AIH):
@@ -156,29 +151,12 @@ print(f"[2b] {novas} unidades novas | total {len(mats)} | por conjunto: {conta}"
 # morbidade neonatal — ver Indicadores_Assistenciais/LEIA-ME.md.
 import blocos_assistenciais
 
-assist_xlsx, avisos_a = blocos_assistenciais.carregar(os.path.join(PROJ, "Indicadores_Assistenciais"))
-# 29/09/2026: as planilhas xlsx de 31/08 (v1) servem so de MOLDE; os valores vem do JSON v3
-# (regras aprovadas em 09/09, as mesmas dos decks). PERFIL_SO: o Painel NV guarda apenas as secoes
-# de perfil da mae (SINASC); as de internacao foram para o Painel de Internacao (Projeto Apresentacoes Internacao).
-import blocos_adicionais
-assist, avisos_v3 = blocos_adicionais.carregar_v3(assist_xlsx["0000434"])
-avisos_a += avisos_v3
-print(f"[2c] blocos assistenciais do JSON v3: {len(assist)} (molde: {len(assist_xlsx)} blocos xlsx de 31/08)")
-PERFIL_SO = ("PERFIL SÓCIO-DEMOGRÁFICO (SINASC)", "PERFIL OBSTÉTRICO (SINASC)")
-# 23/09/2026: unidades adicionais fora das planilhas da coordenacao - blocos montados dos
-# JSON das extracoes proprias, com a estrutura de um bloco oficial como molde
-extra, avisos_x = blocos_adicionais.carregar(assist_xlsx["0000434"])
-for cnes, b in extra.items():
-    if cnes in assist:
-        avisos_x.append(f"{cnes} ja tinha bloco oficial - mantido o oficial"); continue
-    assist[cnes] = b
-avisos_a += avisos_x
-print(f"[2c] blocos assistenciais adicionais (JSON): {len(extra)}")
+assist, avisos_a = blocos_assistenciais.carregar(os.path.join(PROJ, "Indicadores_Assistenciais"))
 com_a = 0
 for m in mats:
     b = assist.pop(m["cnes"], None)
     if b:
-        m["assistenciais"] = {"origem": b["origem"], "secoes": [s for s in b["secoes"] if s["titulo"] in PERFIL_SO]}
+        m["assistenciais"] = {"origem": b["origem"], "secoes": b["secoes"]}
         com_a += 1
 sem_a = [m for m in mats if "assistenciais" not in m]
 print(f"[2c] indicadores assistenciais: {com_a} unidades com bloco | {len(sem_a)} sem")

@@ -1098,16 +1098,24 @@ const FONTE_MISTA = "Fonte: Ministério da Saúde - SINASC e SIH/SUS · dados su
    INDICADORES ASSISTENCIAIS (planilhas da coordenação, 26/08/2026)
    mt.assistenciais = {origem, secoes:[{titulo, linhas:[{rotulo, fmt, valores[7]}]}]}
    ============================================================ */
-/* 29/09/2026: só os 7 slides de perfil da mãe do deck de NV; os indicadores de internação (SIH)
-   estão no Painel de Internação 2026 (mesma família), acessível pelos botões do cabeçalho. */
 const ASSIST_CARDS = [
   {id:"idade",     h:"Idade da mãe (%)",                          fonte:"SINASC"},
   {id:"raca",      h:"Raça/cor da mãe (%)",                       fonte:"SINASC"},
   {id:"escola",    h:"Escolaridade da mãe (anos de estudo) (%)",  fonte:"SINASC"},
   {id:"conjugal",  h:"Situação conjugal da mãe (%)",              fonte:"SINASC"},
+  {id:"partos_ant",h:"Partos anteriores da mãe (%)",              fonte:"SINASC"},
   {id:"ces_ant",   h:"Cesarianas anteriores da mãe (%)",          fonte:"SINASC"},
   {id:"tipo_gest", h:"Tipo de gestação (%)",                      fonte:"SINASC"},
-  {id:"prenatal",  h:"Pré-natal adequado à idade gestacional (%)", fonte:"SINASC"},
+  {id:"motivo",    h:"Internações obstétricas: motivo (%)",       fonte:"SIH"},
+  {id:"volume",    h:"Internações obstétricas: volume e procedimentos", fonte:"SIH"},
+  {id:"acomp",     h:"Internações com presença de acompanhante (%)", fonte:"SIH"},
+  {id:"ocup",      h:"Ocupação e permanência (obstetrícia)",      fonte:"SIH"},
+  {id:"assistparto",h:"Assistência ao parto",                     fonte:"MISTA"},
+  {id:"neo",       h:"Internações neonatais e UTI",               fonte:"SIH"},
+  {id:"mmg",       h:"Morbidade materna grave (MMG)",             fonte:"SIH"},
+  {id:"mmg_causa", h:"MMG por grupo de causa (%)",                fonte:"SIH"},
+  {id:"morb",      h:"Morbidade neonatal",                        fonte:"SINASC"},
+  {id:"neo_causas",h:"Internações neonatais por grupo de causa (%)", fonte:"SIH"},
 ];
 const ASSIST_MAP = [
   [/por idade da mãe - (.+)$/,                       "idade",     null],
@@ -1133,7 +1141,7 @@ const ASSIST_MAP = [
   [/^Tempo médio de permanência - cesariana$/,       "ocup",      "Permanência média: cesariana (dias)"],
   [/^Tempo médio de permanência - aborto$/,          "ocup",      "Permanência média: aborto (dias)"],
   [/^Tempo médio de permanência - intercorrências/,  "ocup",      "Permanência média: intercorrências (dias)"],
-  [/número adequado de consultas para a idade gestacional/, "prenatal", "Nascidos vivos com pré-natal adequado à idade gestacional (%)"],
+  [/número adequado de consultas para a idade gestacional/, "assistparto", "Pré-natal adequado para a idade gestacional (%)"],
   [/partos vaginais pós-cesariana/,                  "assistparto", "Parto vaginal após cesariana anterior (%)"],
   [/analgesia em internações para partos vaginais/,  "assistparto", "Analgesia no parto vaginal (%)"],
   [/trabalho de parto induzido/,                     "assistparto", "Trabalho de parto induzido (%)"],
@@ -1181,10 +1189,10 @@ function tabelaAssist(linhas, idCard){
   return `<div class="tab-wrap"><table class="dados"${attr}><thead><tr><th></th>${ths}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function assistenciaisHTML(mt){
-  const sep = `<div class="full"><p class="eyebrow titulo-linha" style="margin:1rem 0 .2rem">Perfil das mães (SINASC)</p></div>`;
+  const sep = `<div class="full"><p class="eyebrow titulo-linha" style="margin:1rem 0 .2rem">Perfil das mães e assistência hospitalar (SINASC · SIH)</p></div>`;
   const grupos = gruposAssist(mt);
   if(!grupos){
-    return sep + `<div class="card full"><p class="suave">Perfil das mães ainda não disponível para esta unidade nas planilhas da coordenação.</p></div>`;
+    return sep + `<div class="card full"><p class="suave">Indicadores assistenciais ainda não disponíveis para esta unidade nas planilhas da coordenação.</p></div>`;
   }
   let html = sep;
   ASSIST_CARDS.forEach(c => {
@@ -1192,7 +1200,8 @@ function assistenciaisHTML(mt){
     const fonte = c.fonte === "SIH" ? FONTE_SIH : c.fonte === "MISTA" ? FONTE_MISTA : FONTE_SINASC;
     html += `<div class="card"><h3>${esc(c.h)}</h3>${tabelaAssist(grupos[c.id], c.id)}<p class="fonte">${fonte}</p></div>`;
   });
-  html += `<div class="card full"><p class="suave" style="font-size:.9rem">Os indicadores de internação obstétrica e neonatal desta unidade (SIH/SUS: motivos, acompanhante, AMIU, Centro de Parto Normal, morbidade materna grave, ocupação e permanência, internações neonatais e UTI neonatal) estão no <a href="https://anamazza.github.io/Indicadores_internacao-2026/" target="_blank" rel="noopener">Painel de Internação 2026</a>.</p></div>`;
+  if(grupos.outros)
+    html += `<div class="card"><h3>Outros indicadores</h3>${tabelaAssist(grupos.outros, null)}<p class="fonte">${FONTE_SIH}</p></div>`;
   return html;
 }
 /* clique no INDICADOR (rótulo da linha): evolução 2019-2025 (pedido da Tatiana, 28/08) */

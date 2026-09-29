@@ -72,16 +72,6 @@ select:focus-visible,input:focus-visible,button:focus-visible{outline:2.5px soli
 .hero .eyebrow{color:var(--verde-lima)}
 .hero p.sub{margin-top:.9rem; max-width:56ch; color:#C9DCD0; font-size:1.02rem}
 
-/* botões dos painéis da família */
-.hero-links{display:flex; gap:.55rem; flex-wrap:wrap; margin-top:1.3rem; align-items:center}
-.hero-links .rot{font-size:.7rem; font-weight:800; letter-spacing:.11em; text-transform:uppercase; color:#C9DCD0; margin-right:.2rem}
-.hero-links a{
-  display:inline-flex; align-items:center; gap:.4rem; text-decoration:none;
-  background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); color:#FFF;
-  border-radius:999px; padding:.42rem 1rem; font-size:.86rem; font-weight:800; transition:background .15s;
-}
-.hero-links a:hover{background:rgba(255,255,255,.24)}
-.hero-links a.atual{background:var(--verde-fiocruz); border-color:var(--verde-fiocruz); cursor:default}
 /* faixa de destaques abaixo do cabeçalho */
 .faixa-stats{
   display:flex; gap:.8rem; flex-wrap:wrap;
@@ -410,13 +400,7 @@ footer a{color:var(--verde-lima)}
     </div>
     <p class="eyebrow">Painel de Indicadores · Saúde Materna e Neonatal · 2019 a 2025</p>
     <h1 style="margin-top:.6rem">Qualificação do Modelo de Gestão em Maternidades Estratégicas</h1>
-    <p class="sub">Rede de Atenção à Saúde Materna e Neonatal · nascidos vivos e perfil das mães segundo o SINASC 2019 a 2025, cadastro CNES e localização das unidades em todo o Brasil.</p>
-    <div class="hero-links" aria-label="Painéis da coordenação">
-      <span class="rot">Painéis</span>
-      <a class="atual" aria-current="page">Nascimentos</a>
-      <a href="https://anamazza.github.io/Indicadores_internacao-2026/">Internação</a>
-      <a href="https://anamazza.github.io/Indicadores_mortalidade-2026/">Mortalidade</a>
-    </div>
+    <p class="sub">Rede de Atenção à Saúde Materna e Neonatal · indicadores do SINASC 2019 a 2025, cadastro CNES e localização das unidades em todo o Brasil.</p>
   </div>
 </header>
 

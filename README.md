@@ -33,7 +33,13 @@ via serviço do site do CNES) · SIH/AIH 2025 · malhas de macrorregiões e regi
 |---|---|
 | Ficha CNES + habilitações | `py atualizar_cnes.py` (agendado no Windows para 1º jun/dez) |
 | Comparativo 2019×2024 | `py build_comparativo.py "planilha_macro.xlsx" "planilha_regiao.xlsx"` |
-| Dados SINASC das unidades | `py build_dados.py` (extrai do painel anterior + coordenadas) |
+| Dados SINASC das unidades | `py build_dados.py` (extrai do painel anterior + coordenadas; a lista `ADICIONAIS` registra as planilhas das unidades acrescentadas depois; `blocos_adicionais.py` monta o bloco de perfil das mães a partir do JSON v3 das planilhas de indicadores, `carregar_v3`, e dos JSON das unidades avulsas, `carregar`; as planilhas xlsx de 31/08 servem só de molde) |
+
+Desde 29/09/2026 este painel traz **só nascimentos**: os 16 blocos do deck de NV e os 7 cards de perfil da mãe
+(idade, raça/cor, escolaridade, situação conjugal, cesarianas anteriores, tipo de gestação e pré-natal adequado),
+como no deck. Os indicadores de internação (SIH/SUS) estão no **Painel de Internação 2026**
+(`Projeto Apresentações Internação/Painel_Internacao`), e o cabeçalho tem botões para os três painéis da família
+(Nascimentos · Internação · Mortalidade). O patch está registrado em `_patch_split_2026-09-29.py`.
 | Remontar o painel | `py montar_painel.py` (gera `Painel_NV2026_Novo.html` e `index.html`) |
 
 Atalho local: `atualizar_painel.bat` roda CNES + montagem e registra em `atualizacao_cnes.log`.

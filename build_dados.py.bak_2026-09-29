@@ -156,18 +156,11 @@ print(f"[2b] {novas} unidades novas | total {len(mats)} | por conjunto: {conta}"
 # morbidade neonatal — ver Indicadores_Assistenciais/LEIA-ME.md.
 import blocos_assistenciais
 
-assist_xlsx, avisos_a = blocos_assistenciais.carregar(os.path.join(PROJ, "Indicadores_Assistenciais"))
-# 29/09/2026: as planilhas xlsx de 31/08 (v1) servem so de MOLDE; os valores vem do JSON v3
-# (regras aprovadas em 09/09, as mesmas dos decks). PERFIL_SO: o Painel NV guarda apenas as secoes
-# de perfil da mae (SINASC); as de internacao foram para o Painel de Internacao (Projeto Apresentacoes Internacao).
-import blocos_adicionais
-assist, avisos_v3 = blocos_adicionais.carregar_v3(assist_xlsx["0000434"])
-avisos_a += avisos_v3
-print(f"[2c] blocos assistenciais do JSON v3: {len(assist)} (molde: {len(assist_xlsx)} blocos xlsx de 31/08)")
-PERFIL_SO = ("PERFIL SÓCIO-DEMOGRÁFICO (SINASC)", "PERFIL OBSTÉTRICO (SINASC)")
+assist, avisos_a = blocos_assistenciais.carregar(os.path.join(PROJ, "Indicadores_Assistenciais"))
 # 23/09/2026: unidades adicionais fora das planilhas da coordenacao - blocos montados dos
 # JSON das extracoes proprias, com a estrutura de um bloco oficial como molde
-extra, avisos_x = blocos_adicionais.carregar(assist_xlsx["0000434"])
+import blocos_adicionais
+extra, avisos_x = blocos_adicionais.carregar(assist["0000434"])
 for cnes, b in extra.items():
     if cnes in assist:
         avisos_x.append(f"{cnes} ja tinha bloco oficial - mantido o oficial"); continue
@@ -178,7 +171,7 @@ com_a = 0
 for m in mats:
     b = assist.pop(m["cnes"], None)
     if b:
-        m["assistenciais"] = {"origem": b["origem"], "secoes": [s for s in b["secoes"] if s["titulo"] in PERFIL_SO]}
+        m["assistenciais"] = {"origem": b["origem"], "secoes": b["secoes"]}
         com_a += 1
 sem_a = [m for m in mats if "assistenciais" not in m]
 print(f"[2c] indicadores assistenciais: {com_a} unidades com bloco | {len(sem_a)} sem")
